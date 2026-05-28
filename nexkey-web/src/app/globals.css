@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+:root {
+  --background: 255 255 255;
+  --foreground: 15 23 42; /* slate-900 */
+
+  --card: 255 255 255;
+  --muted: 241 245 249; /* slate-100 */
+  --muted-foreground: 71 85 105; /* slate-600 */
+
+  --border: 226 232 240; /* slate-200 */
+  --ring: 99 102 241; /* indigo-500 */
+
+  --brand-from: 59 130 246; /* blue-500 */
+  --brand-via: 99 102 241; /* indigo-500 */
+  --brand-to: 168 85 247; /* purple-500 */
+}
+
+@theme inline {
+  --color-background: rgb(var(--background));
+  --color-foreground: rgb(var(--foreground));
+  --color-card: rgb(var(--card));
+  --color-muted: rgb(var(--muted));
+  --color-muted-foreground: rgb(var(--muted-foreground));
+  --color-border: rgb(var(--border));
+  --color-ring: rgb(var(--ring));
+  --color-brand-from: rgb(var(--brand-from));
+  --color-brand-via: rgb(var(--brand-via));
+  --color-brand-to: rgb(var(--brand-to));
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: rgb(var(--background));
+  color: rgb(var(--foreground));
+}
+
+* {
+  outline-color: rgb(var(--ring));
+}
+
+.container-page {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
