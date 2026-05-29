@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Bell, Search, ChevronDown, Settings, LogOut, User, Plus, Command, CheckCheck } from "lucide-react";
 import { useNotifications } from "@/store/NotificationContext";
+import { useAuth } from "@/store/AuthContext";
 import { timeAgo } from "@/lib/utils";
 
 const TYPE_EMOJI: Record<string, string> = {
@@ -15,7 +15,7 @@ const TYPE_EMOJI: Record<string, string> = {
 type TopbarProps = { title: string; subtitle?: string };
 
 export function Topbar({ title, subtitle }: TopbarProps) {
-  const router = useRouter();
+  const { user, logout } = useAuth();
   const [showNotif, setShowNotif]     = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
@@ -123,10 +123,12 @@ export function Topbar({ title, subtitle }: TopbarProps) {
             onClick={() => { setShowProfile(!showProfile); setShowNotif(false); }}
             style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 8px 4px 4px", borderRadius: 9, background: "rgba(17,24,48,0.9)", border: "1px solid rgba(30,42,80,0.9)", cursor: "pointer", transition: "all 0.15s" }}
           >
-            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#2563eb,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 12 }}>A</div>
+            <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#2563eb,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 12 }}>
+              {user?.name?.[0]?.toUpperCase() ?? "A"}
+            </div>
             <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 11.5, fontWeight: 600, color: "#e2e8f0", lineHeight: 1.1 }}>Admin Nexkey</div>
-              <div style={{ fontSize: 10, color: "#475569" }}>Super Admin</div>
+              <div style={{ fontSize: 11.5, fontWeight: 600, color: "#e2e8f0", lineHeight: 1.1 }}>{user?.name ?? "Admin"}</div>
+              <div style={{ fontSize: 10, color: "#475569" }}>{user?.role?.name ?? "Admin"}</div>
             </div>
             <ChevronDown size={11} style={{ color: "#475569" }} />
           </button>
@@ -144,7 +146,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
                 <Settings size={13} style={{ color: "#64748b" }} />Cài đặt
               </Link>
               <div style={{ height: 1, background: "rgba(30,42,80,0.8)", margin: "4px 0" }} />
-              <button onClick={() => { closeAll(); router.push("/login"); }} className="btn btn-ghost btn-sm" style={{ width: "100%", justifyContent: "flex-start", padding: "8px 10px", color: "#f87171", gap: 8, borderRadius: 7 }}>
+              <button onClick={() => { closeAll(); logout(); }} className="btn btn-ghost btn-sm" style={{ width: "100%", justifyContent: "flex-start", padding: "8px 10px", color: "#f87171", gap: 8, borderRadius: 7 }}>
                 <LogOut size={13} />Đăng xuất
               </button>
             </div>

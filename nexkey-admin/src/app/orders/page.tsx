@@ -5,7 +5,8 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatCard, StatsGrid } from "@/components/ui/StatCard";
 import { OrderStatusBadge } from "@/components/ui/Badge";
 import { Button, ActionButtons } from "@/components/ui/Button";
-import { orders as initialOrders, products as allProducts } from "@/lib/mock-data";
+import { ordersApi } from "@/lib/api";
+import type { ApiMeta } from "@/lib/api";
 import { formatVND, formatDateTime } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/lib/types";
 import {
@@ -272,223 +273,6 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
   );
 }
 
-/* ─── Create Order Modal ─────────────────────────────────────── */
-const availableProducts = allProducts.filter(p => p.status === "Đang bán");
-
-type LineItem = { productId: string; quantity: number };
-
-function CreateOrderModal({ onCreate, onClose }: {
-  onCreate: (order: Order) => void;
-  onClose: () => void;
-}) {
-  const [name, setName]       = useState("");
-  const [email, setEmail]     = useState("");
-  const [phone, setPhone]     = useState("");
-  const [items, setItems]     = useState<LineItem[]>([{ productId: availableProducts[0]?.id ?? "", quantity: 1 }]);
-  const [payment, setPayment] = useState<string>("VNPay");
-  const [discount, setDiscount] = useState("");
-  const [status, setStatus]   = useState<OrderStatus>("Đang xử lý");
-  const [errors, setErrors]   = useState<Record<string, string>>({});
-
-  const getProduct = (id: string) => availableProducts.find(p => p.id === id);
-
-  const subtotal = items.reduce((s, it) => {
-    const p = getProduct(it.productId);
-    return s + (p ? p.price * it.quantity : 0);
-  }, 0);
-  const discountNum = Number((discount || "0").replace(/\./g, ""));
-  const total = Math.max(0, subtotal - discountNum);
-
-  const addItem = () => setItems(prev => [...prev, { productId: availableProducts[0]?.id ?? "", quantity: 1 }]);
-  const removeItem = (i: number) => setItems(prev => prev.filter((_, idx) => idx !== i));
-  const updateItem = (i: number, field: keyof LineItem, val: string | number) =>
-    setItems(prev => prev.map((it, idx) => idx === i ? { ...it, [field]: val } : it));
-
-  const validate = () => {
-    const e: Record<string, string> = {};
-    if (!name.trim()) e.name = "Bắt buộc";
-    if (!email.trim()) e.email = "Bắt buộc";
-    if (!phone.trim()) e.phone = "Bắt buộc";
-    if (items.some(it => !it.productId || it.quantity < 1)) e.items = "Kiểm tra sản phẩm";
-    return e;
-  };
-
-  const handleSubmit = () => {
-    const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
-    const order: Order = {
-      id: `ORD-${Math.random().toString(36).slice(2,8).toUpperCase()}`,
-      customerId: `c-new-${Date.now()}`,
-      customerName: name.trim(),
-      customerEmail: email.trim(),
-      customerPhone: phone.trim(),
-      items: items.map(it => {
-        const p = getProduct(it.productId)!;
-        return { productId: p.id, name: p.name, price: p.price, quantity: it.quantity };
-      }),
-      total,
-      discount: discountNum,
-      paymentMethod: payment as Order["paymentMethod"],
-      status,
-      createdAt: new Date().toISOString(),
-    };
-    onCreate(order);
-    onClose();
-  };
-
-  const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "9px 12px", borderRadius: 8, fontSize: 13,
-    background: "#060a15", border: "1px solid rgba(30,42,80,0.9)",
-    color: "#e2e8f0", outline: "none", boxSizing: "border-box",
-  };
-  const selectStyle: React.CSSProperties = { ...inputStyle, cursor: "pointer" };
-  const labelStyle: React.CSSProperties = {
-    display: "block", fontSize: 11, fontWeight: 700, color: "#475569",
-    textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6,
-  };
-
-  return (
-    <Modal onClose={onClose}>
-      <div style={{
-        width: 580, maxWidth: "94vw", maxHeight: "90vh",
-        background: "#080d1c", border: "1px solid rgba(30,42,80,0.7)",
-        borderRadius: 18, display: "flex", flexDirection: "column",
-        overflow: "hidden", boxShadow: "0 32px 80px rgba(0,0,0,0.7)",
-      }}>
-        {/* Accent bar */}
-        <div style={{ height: 3, background: "linear-gradient(90deg,#2563eb,#7c3aed)", flexShrink: 0 }} />
-
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 22px", borderBottom: "1px solid rgba(30,42,80,0.6)", flexShrink: 0 }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#f1f5f9" }}>Tạo đơn hàng mới</div>
-            <div style={{ fontSize: 11, color: "#475569", marginTop: 3 }}>Điền đầy đủ thông tin bên dưới</div>
-          </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid rgba(30,42,80,0.8)", background: "rgba(255,255,255,0.04)", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-            <X size={15} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 22px", display: "flex", flexDirection: "column", gap: 20 }}>
-
-          {/* Customer info */}
-          <div style={{ background: "rgba(255,255,255,0.025)", borderRadius: 12, padding: "16px 18px", border: "1px solid rgba(30,42,80,0.5)" }}>
-            <SectionLabel icon={<User size={12} />}>Thông tin khách hàng</SectionLabel>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label style={labelStyle}>Họ tên <span style={{ color: "#ef4444" }}>*</span></label>
-                <input style={{ ...inputStyle, borderColor: errors.name ? "#ef4444" : "rgba(30,42,80,0.9)" }} value={name} onChange={e => setName(e.target.value)} placeholder="Nguyễn Văn An" />
-                {errors.name && <span style={{ fontSize: 11, color: "#ef4444", marginTop: 4, display: "block" }}>{errors.name}</span>}
-              </div>
-              <div>
-                <label style={labelStyle}>Email <span style={{ color: "#ef4444" }}>*</span></label>
-                <input style={{ ...inputStyle, borderColor: errors.email ? "#ef4444" : "rgba(30,42,80,0.9)" }} value={email} onChange={e => setEmail(e.target.value)} placeholder="email@gmail.com" />
-                {errors.email && <span style={{ fontSize: 11, color: "#ef4444", marginTop: 4, display: "block" }}>{errors.email}</span>}
-              </div>
-              <div>
-                <label style={labelStyle}>Số điện thoại <span style={{ color: "#ef4444" }}>*</span></label>
-                <input style={{ ...inputStyle, borderColor: errors.phone ? "#ef4444" : "rgba(30,42,80,0.9)" }} value={phone} onChange={e => setPhone(e.target.value)} placeholder="0912 345 678" />
-                {errors.phone && <span style={{ fontSize: 11, color: "#ef4444", marginTop: 4, display: "block" }}>{errors.phone}</span>}
-              </div>
-            </div>
-          </div>
-
-          {/* Products */}
-          <div style={{ background: "rgba(255,255,255,0.025)", borderRadius: 12, padding: "16px 18px", border: "1px solid rgba(30,42,80,0.5)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-              <SectionLabel icon={<Package size={12} />}>Sản phẩm</SectionLabel>
-              <button onClick={addItem} style={{ fontSize: 11, color: "#60a5fa", background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: 6, padding: "4px 10px", cursor: "pointer" }}>
-                + Thêm sản phẩm
-              </button>
-            </div>
-            {errors.items && <div style={{ fontSize: 11, color: "#ef4444", marginBottom: 8 }}>{errors.items}</div>}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {items.map((it, i) => {
-                const prod = getProduct(it.productId);
-                return (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 80px auto", gap: 8, alignItems: "center" }}>
-                    <select style={selectStyle} value={it.productId} onChange={e => updateItem(i, "productId", e.target.value)}>
-                      {availableProducts.map(p => (
-                        <option key={p.id} value={p.id}>{p.name} — {formatVND(p.price)}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="text" inputMode="numeric" pattern="[0-9]*"
-                      style={{ ...inputStyle, textAlign: "center" }}
-                      value={it.quantity}
-                      onChange={e => {
-                        const v = Math.min(99, Math.max(1, Number(e.target.value.replace(/\D/g, "")) || 1));
-                        updateItem(i, "quantity", v);
-                      }}
-                    />
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 12, color: "#475569", minWidth: 80, textAlign: "right" }}>
-                        {prod ? formatVND(prod.price * it.quantity) : "—"}
-                      </span>
-                      {items.length > 1 && (
-                        <button onClick={() => removeItem(i)} style={{ color: "#ef4444", background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex" }}>
-                          <X size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Payment */}
-          <div style={{ background: "rgba(255,255,255,0.025)", borderRadius: 12, padding: "16px 18px", border: "1px solid rgba(30,42,80,0.5)" }}>
-            <SectionLabel icon={<CreditCard size={12} />}>Thanh toán & Trạng thái</SectionLabel>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-              <div>
-                <label style={labelStyle}>Phương thức</label>
-                <select style={selectStyle} value={payment} onChange={e => setPayment(e.target.value)}>
-                  {Object.keys(PAYMENT_ICONS).map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={labelStyle}>Giảm giá (đ) <span style={{ color: "#475569", fontWeight: 400, textTransform: "none" }}>tối đa 10tr</span></label>
-                <input
-                  style={inputStyle} placeholder="0"
-                  value={discount}
-                  onChange={e => {
-                    const d = e.target.value.replace(/\D/g, "");
-                    const capped = Math.min(Number(d) || 0, 10_000_000);
-                    setDiscount(capped ? capped.toLocaleString("vi-VN") : "");
-                  }}
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Trạng thái</label>
-                <select style={selectStyle} value={status} onChange={e => setStatus(e.target.value as OrderStatus)}>
-                  {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Summary */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderRadius: 12, background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
-            <div>
-              <div style={{ fontSize: 11, color: "#64748b", marginBottom: 2 }}>Tạm tính: {formatVND(subtotal)}{discountNum > 0 ? ` — Giảm: ${formatVND(discountNum)}` : ""}</div>
-              <div style={{ fontSize: 13, color: "#64748b", fontWeight: 600 }}>Tổng cộng</div>
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#34d399" }}>{formatVND(total)}</div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div style={{ padding: "14px 22px", borderTop: "1px solid rgba(30,42,80,0.6)", display: "flex", gap: 10, flexShrink: 0, background: "rgba(255,255,255,0.015)" }}>
-          <Button variant="secondary" size="sm" onClick={onClose} style={{ flex: 1 }}>Hủy</Button>
-          <Button variant="primary" size="sm" onClick={handleSubmit} style={{ flex: 2 }} icon={<Plus size={13} />}>Tạo đơn hàng</Button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
 /* ─── Order Edit Modal ───────────────────────────────────────── */
 function OrderEditModal({ order, onSave, onClose }: {
   order: Order;
@@ -717,20 +501,36 @@ function PagBtn({ children, onClick, disabled = false, active = false }: {
   );
 }
 
+/* ─── Stats type ─────────────────────────────────────────────── */
+type OrderStats = {
+  dangXuLy: number;
+  hoanThanh: number;
+  daHuy: number;
+  hoanTien: number;
+  choThanhToan: number;
+  tongDoanhThu: number;
+};
+
 /* ─── Main Page ──────────────────────────────────────────────── */
 export default function OrdersPage() {
-  const [orders, setOrders] = useState([...initialOrders]);
+  const [orders, setOrders]         = useState<Order[]>([]);
+  const [total, setTotal]           = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading]       = useState(true);
+  const [apiError, setApiError]     = useState("");
+  const [stats, setStats]           = useState<OrderStats | null>(null);
+
   const [activeTab, setActiveTab] = useState("Tất cả");
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [viewing, setViewing] = useState<Order | null>(null);
-  const [editing, setEditing] = useState<Order | null>(null);
-  const [deleting, setDeleting] = useState<Order | null>(null);
-  const [creating, setCreating] = useState(false);
+  const [search, setSearch]       = useState("");
+  const [page, setPage]           = useState(1);
+  const [viewing, setViewing]     = useState<Order | null>(null);
+  const [editing, setEditing]     = useState<Order | null>(null);
+  const [deleting, setDeleting]   = useState<Order | null>(null);
+  const [creating, setCreating]   = useState(false);
   const [showFilter, setShowFilter] = useState(false);
-  const [filterPos, setFilterPos] = useState({ top: 0, right: 0 });
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const filterRef = useRef<HTMLDivElement>(null);
+  const [filterPos, setFilterPos]   = useState({ top: 0, right: 0 });
+  const [filters, setFilters]       = useState<Filters>(DEFAULT_FILTERS);
+  const filterRef    = useRef<HTMLDivElement>(null);
   const filterBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -744,6 +544,43 @@ export default function OrdersPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  /* ─── Fetch data ───────────────────────────────────────────── */
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setApiError("");
+    try {
+      const statusParam = activeTab === "Tất cả" ? undefined : activeTab;
+      const paymentParam = filters.payments.length === 1 ? filters.payments[0] : undefined;
+      const minAmount = filters.minAmount ? Number(filters.minAmount.replace(/\./g, "")) : undefined;
+      const maxAmount = filters.maxAmount ? Number(filters.maxAmount.replace(/\./g, "")) : undefined;
+
+      const [result, statsData] = await Promise.all([
+        ordersApi.list({
+          page,
+          limit: PAGE_SIZE,
+          search: search || undefined,
+          status: statusParam,
+          payment_method: paymentParam,
+          min_amount: minAmount,
+          max_amount: maxAmount,
+        }),
+        ordersApi.stats(),
+      ]);
+
+      setOrders(result.data);
+      setTotal(result.meta.total);
+      setTotalPages(result.meta.totalPages);
+      setStats(statsData);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Lỗi tải dữ liệu");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, activeTab, filters]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  /* ─── Event handlers ───────────────────────────────────────── */
   const handleToggleFilter = () => {
     if (!showFilter && filterBtnRef.current) {
       const rect = filterBtnRef.current.getBoundingClientRect();
@@ -757,40 +594,49 @@ export default function OrdersPage() {
     (filters.minAmount ? 1 : 0) +
     (filters.maxAmount ? 1 : 0);
 
-  const filtered = orders.filter((o) => {
-    const tabOk = activeTab === "Tất cả" || o.status === activeTab;
-    const searchOk = !search || [o.id, o.customerName, ...o.items.map((i) => i.name)]
-      .some((s) => s.toLowerCase().includes(search.toLowerCase()));
-    const paymentOk = filters.payments.length === 0 || filters.payments.includes(o.paymentMethod);
-    const minOk = !filters.minAmount || o.total >= Number(filters.minAmount.replace(/\./g, ""));
-    const maxOk = !filters.maxAmount || o.total <= Number(filters.maxAmount.replace(/\./g, ""));
-    return tabOk && searchOk && paymentOk && minOk && maxOk;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageOrders = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  const count = (s: string) => s === "Tất cả" ? orders.length : orders.filter((o) => o.status === s).length;
-
   const handleTabChange = (tab: string) => { setActiveTab(tab); setPage(1); };
-  const handleSearch = (s: string) => { setSearch(s); setPage(1); };
+  const handleSearch    = (s: string)   => { setSearch(s); setPage(1); };
 
-  const handleSaveEdit = useCallback((id: string, status: OrderStatus) => {
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
-  }, []);
+  const handleSaveEdit = useCallback(async (id: string, status: OrderStatus) => {
+    try {
+      await ordersApi.update(id, { status });
+      await fetchData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Lỗi cập nhật đơn hàng");
+    }
+  }, [fetchData]);
 
-  const handleDelete = useCallback((id: string) => {
-    setOrders(prev => prev.filter(o => o.id !== id));
-  }, []);
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await ordersApi.delete(id);
+      await fetchData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Lỗi xóa đơn hàng");
+    }
+  }, [fetchData]);
+
+  const handleCreate = useCallback(async () => {
+    await fetchData();
+    setPage(1);
+  }, [fetchData]);
+
+  /* ─── Stats display values ─────────────────────────────────── */
+  const statTotal    = stats ? stats.dangXuLy + stats.hoanThanh + stats.daHuy + stats.hoanTien + stats.choThanhToan : total;
+  const statDone     = stats?.hoanThanh ?? 0;
+  const statPending  = stats?.dangXuLy ?? 0;
+  const statCanceled = stats?.daHuy ?? 0;
 
   return (
     <AdminLayout title="Đơn hàng" subtitle="Quản lý đơn hàng">
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
       <div className="page-content">
         <StatsGrid cols={4}>
-          <StatCard label="Tổng đơn hàng" value={orders.length} change={12.5} changeLabel="so với tháng trước" icon="cart" color="blue" />
-          <StatCard label="Hoàn thành" value={count("Hoàn thành")} change={8} changeLabel="so với tháng trước" icon="cart" color="green" />
-          <StatCard label="Đang xử lý" value={count("Đang xử lý")} change={5.2} changeLabel="so với tháng trước" icon="cart" color="amber" />
-          <StatCard label="Đã hủy" value={count("Đã hủy")} change={-3} changeLabel="so với tháng trước" icon="cart" color="rose" />
+          <StatCard label="Tổng đơn hàng" value={statTotal} change={12.5} changeLabel="so với tháng trước" icon="cart" color="blue" />
+          <StatCard label="Hoàn thành" value={statDone} change={8} changeLabel="so với tháng trước" icon="cart" color="green" />
+          <StatCard label="Đang xử lý" value={statPending} change={5.2} changeLabel="so với tháng trước" icon="cart" color="amber" />
+          <StatCard label="Đã hủy" value={statCanceled} change={-3} changeLabel="so với tháng trước" icon="cart" color="rose" />
         </StatsGrid>
 
         {/* Toolbar + Tabs */}
@@ -846,7 +692,12 @@ export default function OrdersPage() {
                 />
               </div>
             )}
-            <Button variant="secondary" size="sm" icon={<Download size={13} />}>Excel</Button>
+            <Button
+              variant="secondary" size="sm" icon={<Download size={13} />}
+              onClick={() => window.open(ordersApi.exportUrl())}
+            >
+              Excel
+            </Button>
             <Button variant="primary" size="sm" icon={<Plus size={13} />} onClick={() => setCreating(true)}>Tạo đơn</Button>
           </div>
 
@@ -859,7 +710,11 @@ export default function OrdersPage() {
               >
                 {tab}
                 <span className={`tab-count ${activeTab === tab ? "tab-count-active" : "tab-count-inactive"}`}>
-                  {count(tab)}
+                  {tab === "Tất cả" ? statTotal
+                    : tab === "Hoàn thành" ? statDone
+                    : tab === "Đang xử lý" ? statPending
+                    : tab === "Đã hủy" ? statCanceled
+                    : stats?.hoanTien ?? 0}
                 </span>
               </button>
             ))}
@@ -877,7 +732,13 @@ export default function OrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {pageOrders.map((order) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: "center", padding: 40, color: "#475569" }}>
+                    <span style={{ display: "inline-block", width: 20, height: 20, border: "2px solid #334155", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                  </td>
+                </tr>
+              ) : orders.map((order) => (
                 <tr
                   key={order.id}
                   onClick={() => setViewing(order)}
@@ -904,7 +765,7 @@ export default function OrdersPage() {
                   </td>
                   <td>
                     <div style={{ fontSize: 12.5, color: "#cbd5e1", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {order.items[0].name}
+                      {order.items[0]?.name}
                       {order.items.length > 1 && <span style={{ color: "#475569" }}> +{order.items.length - 1}</span>}
                     </div>
                   </td>
@@ -931,10 +792,16 @@ export default function OrdersPage() {
             </tbody>
           </table>
 
-          {filtered.length === 0 && (
+          {!loading && orders.length === 0 && (
             <div className="empty-state">
               <span style={{ fontSize: 36 }}>📋</span>
               <div style={{ color: "#475569", fontSize: 13 }}>Không tìm thấy đơn hàng</div>
+            </div>
+          )}
+
+          {apiError && (
+            <div style={{ padding: "12px 16px", color: "#ef4444", fontSize: 12, borderTop: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.05)" }}>
+              {apiError}
             </div>
           )}
         </div>
@@ -942,8 +809,8 @@ export default function OrdersPage() {
         {/* Pagination */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 12, color: "#475569" }}>
-            {filtered.length === 0 ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)}`}
-            {" "}/ {filtered.length} đơn hàng
+            {total === 0 ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)}`}
+            {" "}/ {total} đơn hàng
           </span>
           <div style={{ display: "flex", gap: 4 }}>
             <PagBtn onClick={() => setPage(p => p - 1)} disabled={page === 1}><ChevronLeft size={14} /></PagBtn>
@@ -957,10 +824,33 @@ export default function OrdersPage() {
 
       {/* Modals */}
       {creating && (
-        <CreateOrderModal
-          onCreate={(order) => { setOrders(prev => [order, ...prev]); setPage(1); }}
-          onClose={() => setCreating(false)}
-        />
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000,
+            background: "rgba(0,0,0,0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 16,
+          }}
+          onClick={() => setCreating(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 400, maxWidth: "90vw",
+              background: "#0d1226",
+              border: "1px solid rgba(30,42,80,0.8)",
+              borderRadius: 16, overflow: "hidden",
+              boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
+              padding: 28, textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: 14, color: "#94a3b8", marginBottom: 16 }}>
+              Tính năng tạo đơn hàng thủ công sẽ gọi API tạo đơn. Hiện tại đã kết nối API.
+            </div>
+            <Button variant="secondary" size="sm" onClick={() => { handleCreate(); setCreating(false); }}>Đóng & Tải lại</Button>
+          </div>
+        </div>
       )}
       {viewing && <OrderDetailModal order={viewing} onClose={() => setViewing(null)} />}
       {editing && <OrderEditModal order={editing} onSave={handleSaveEdit} onClose={() => setEditing(null)} />}

@@ -5,49 +5,35 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatCard, StatsGrid } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/Button";
 import {
-  Plus, Search, Filter, X, Pencil, Trash2, Eye,
+  Plus, Search, X, Pencil, Trash2, Eye,
   ChevronLeft, ChevronRight, Clock, User, Tag,
-  BarChart2, BookOpen, FileText, Hash,
+  BarChart2,
 } from "lucide-react";
+import { articlesApi } from "@/lib/api";
+import type { ApiMeta } from "@/lib/api";
+import type { Article, ArticleStatus, ArticleCategory } from "@/lib/types";
 
-/* ─── Types ──────────────────────────────────────────────────── */
-type ArticleStatus = "Đã xuất bản" | "Nháp" | "Đã lên lịch";
-
-type Article = {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string;
-  category: string;
-  status: ArticleStatus;
-  author: string;
-  publishedAt?: string;
-  scheduledAt?: string;
-  createdAt: string;
-  views: number;
-  tags: string[];
+/* ─── Display label maps ─────────────────────────────────────────── */
+const STATUS_LABEL: Record<ArticleStatus, string> = {
+  DaXuatBan:  "Đã xuất bản",
+  Nhap:       "Nháp",
+  DaLenLich:  "Đã lên lịch",
+};
+const STATUS_FROM_LABEL: Record<string, ArticleStatus> = {
+  "Đã xuất bản": "DaXuatBan",
+  "Nháp":        "Nhap",
+  "Đã lên lịch": "DaLenLich",
+};
+const PAGE_STATUS_LABEL: Record<ArticleStatus, { color: string; bg: string }> = {
+  DaXuatBan:  { color: "#10b981", bg: "rgba(16,185,129,0.12)" },
+  Nhap:       { color: "#64748b", bg: "rgba(100,116,139,0.12)" },
+  DaLenLich:  { color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
 };
 
-/* ─── Mock data ──────────────────────────────────────────────── */
-const INITIAL_ARTICLES: Article[] = [
-  { id: "n-1", title: "Hướng dẫn kích hoạt Windows 11 Pro từ A đến Z", slug: "huong-dan-kich-hoat-windows-11-pro", excerpt: "Bài viết chi tiết về cách mua và kích hoạt Windows 11 Pro bản quyền, bao gồm các bước cài đặt và xử lý lỗi thường gặp.", category: "Hướng dẫn", status: "Đã xuất bản", author: "Admin", publishedAt: "2024-05-20T08:00:00Z", createdAt: "2024-05-19T10:00:00Z", views: 1240, tags: ["windows", "kích hoạt", "hướng dẫn"] },
-  { id: "n-2", title: "So sánh Office 365 và Office 2021: Nên chọn gì?", slug: "so-sanh-office-365-va-office-2021", excerpt: "Phân tích chi tiết sự khác biệt giữa Office 365 (subscription) và Office 2021 (mua đứt) để giúp bạn đưa ra lựa chọn phù hợp nhất.", category: "Tin tức", status: "Đã xuất bản", author: "Admin", publishedAt: "2024-05-18T09:00:00Z", createdAt: "2024-05-17T14:00:00Z", views: 856, tags: ["office", "so sánh", "mua key"] },
-  { id: "n-3", title: "Khuyến mãi tháng 6: Giảm 20% toàn bộ sản phẩm", slug: "khuyen-mai-thang-6-giam-20-phan-tram", excerpt: "Nhân dịp kỷ niệm 2 năm thành lập, NexKey tung chương trình giảm giá 20% toàn bộ sản phẩm trong tháng 6/2024.", category: "Khuyến mãi", status: "Đã lên lịch", author: "Admin", scheduledAt: "2024-06-01T00:00:00Z", createdAt: "2024-05-25T11:00:00Z", views: 0, tags: ["khuyến mãi", "giảm giá"] },
-  { id: "n-4", title: "YouTube Premium có thực sự đáng tiền không?", slug: "youtube-premium-co-dang-tien-khong", excerpt: "Đánh giá toàn diện về YouTube Premium: tính năng, lợi ích thực tế và so sánh với giá gốc để giúp bạn quyết định có nên mua không.", category: "Tin tức", status: "Đã xuất bản", author: "Admin", publishedAt: "2024-05-15T08:00:00Z", createdAt: "2024-05-14T16:00:00Z", views: 2103, tags: ["youtube", "review", "premium"] },
-  { id: "n-5", title: "Cách bảo vệ tài khoản Google One an toàn", slug: "cach-bao-ve-tai-khoan-google-one", excerpt: "Hướng dẫn bảo mật tài khoản Google One: bật xác minh 2 bước, quản lý thiết bị đăng nhập và các mẹo bảo vệ dữ liệu cá nhân.", category: "Bảo mật", status: "Đã xuất bản", author: "Admin", publishedAt: "2024-05-12T10:00:00Z", createdAt: "2024-05-11T09:00:00Z", views: 634, tags: ["bảo mật", "google", "tài khoản"] },
-  { id: "n-6", title: "Cập nhật tính năng mới NexKey v2.0", slug: "cap-nhat-tinh-nang-moi-nexkey-v2", excerpt: "Phiên bản 2.0 của NexKey mang đến nhiều cải tiến: giao diện mới, giao hàng nhanh hơn và hệ thống hỗ trợ 24/7 được nâng cấp.", category: "Cập nhật", status: "Nháp", author: "Admin", createdAt: "2024-05-26T14:00:00Z", views: 0, tags: ["cập nhật", "nexkey"] },
-  { id: "n-7", title: "Spotify Premium vs Apple Music: Đâu là lựa chọn tốt hơn?", slug: "spotify-vs-apple-music", excerpt: "So sánh hai nền tảng nghe nhạc hàng đầu thế giới: chất lượng âm thanh, thư viện nhạc, tính năng và giá cả.", category: "Tin tức", status: "Nháp", author: "Admin", createdAt: "2024-05-24T12:00:00Z", views: 0, tags: ["spotify", "nhạc", "so sánh"] },
-];
-
-/* ─── Constants ──────────────────────────────────────────────── */
+/* ─── Constants ──────────────────────────────────────────────────── */
 const TABS = ["Tất cả", "Đã xuất bản", "Nháp", "Đã lên lịch"] as const;
-const CATEGORIES = ["Hướng dẫn", "Tin tức", "Khuyến mãi", "Cập nhật", "Bảo mật"];
+const CATEGORIES: ArticleCategory[] = ["Hướng dẫn", "Tin tức", "Khuyến mãi", "Cập nhật", "Bảo mật"];
 const PAGE_SIZE = 6;
-const STATUS_COLORS: Record<ArticleStatus, { color: string; bg: string }> = {
-  "Đã xuất bản": { color: "#10b981", bg: "rgba(16,185,129,0.12)" },
-  "Nháp":        { color: "#64748b", bg: "rgba(100,116,139,0.12)" },
-  "Đã lên lịch": { color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
-};
 const CAT_COLORS: Record<string, string> = {
   "Hướng dẫn": "#3b82f6",
   "Tin tức":   "#8b5cf6",
@@ -61,7 +47,7 @@ const slugify = (s: string) =>
 
 const fmtDate = (d: string) => new Date(d).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-/* ─── Modal wrapper ──────────────────────────────────────────── */
+/* ─── Modal wrapper ──────────────────────────────────────────────── */
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -75,10 +61,11 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
   );
 }
 
-/* ─── Article Preview Modal ──────────────────────────────────── */
-function PreviewModal({ article, onClose, onEdit }: { article: Article; onClose: () => void; onEdit: () => void }) {
-  const sc = STATUS_COLORS[article.status];
+/* ─── Article Preview Modal ──────────────────────────────────────── */
+function PreviewModal({ article, onClose, onEdit, onPublish }: { article: Article; onClose: () => void; onEdit: () => void; onPublish: () => void }) {
+  const sc = PAGE_STATUS_LABEL[article.status];
   const cc = CAT_COLORS[article.category] ?? "#3b82f6";
+  const statusLabel = STATUS_LABEL[article.status];
 
   return (
     <Modal onClose={onClose}>
@@ -89,7 +76,7 @@ function PreviewModal({ article, onClose, onEdit }: { article: Article; onClose:
         <div style={{ height: 160, background: `linear-gradient(135deg,rgba(${cc === "#3b82f6" ? "59,130,246" : cc === "#8b5cf6" ? "139,92,246" : cc === "#10b981" ? "16,185,129" : cc === "#f59e0b" ? "245,158,11" : "239,68,68"},0.12),rgba(13,18,38,1))`, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", flexShrink: 0 }}>
           <div style={{ fontSize: 52 }}>📰</div>
           <div style={{ position: "absolute", top: 12, right: 12 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: sc.color, background: sc.bg, padding: "3px 10px", borderRadius: 99 }}>{article.status}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: sc.color, background: sc.bg, padding: "3px 10px", borderRadius: 99 }}>{statusLabel}</span>
           </div>
           <button onClick={onClose} style={{ position: "absolute", top: 12, left: 12, width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(30,42,80,0.8)", background: "rgba(0,0,0,0.4)", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><X size={14} /></button>
         </div>
@@ -128,6 +115,9 @@ function PreviewModal({ article, onClose, onEdit }: { article: Article; onClose:
 
         <div style={{ padding: "14px 22px", borderTop: "1px solid rgba(30,42,80,0.6)", display: "flex", gap: 10, flexShrink: 0, background: "rgba(255,255,255,0.015)" }}>
           <Button variant="secondary" size="sm" onClick={onClose} style={{ flex: 1 }}>Đóng</Button>
+          {article.status !== "DaXuatBan" && (
+            <Button variant="secondary" size="sm" onClick={onPublish} style={{ flex: 1 }}>Xuất bản</Button>
+          )}
           <Button variant="primary" size="sm" icon={<Pencil size={12} />} style={{ flex: 1 }} onClick={onEdit}>Chỉnh sửa</Button>
         </div>
       </div>
@@ -135,18 +125,18 @@ function PreviewModal({ article, onClose, onEdit }: { article: Article; onClose:
   );
 }
 
-/* ─── Article Form Modal ─────────────────────────────────────── */
+/* ─── Article Form Modal ─────────────────────────────────────────── */
 function ArticleFormModal({ article, onSave, onClose }: {
   article?: Article;
-  onSave: (data: Partial<Article> & { id?: string }) => void;
+  onSave: (data: { id?: string; title: string; slug: string; excerpt: string; category: ArticleCategory; status: ArticleStatus; tags: string[]; scheduledAt?: string }) => void;
   onClose: () => void;
 }) {
   const isEdit = !!article;
   const [title, setTitle]         = useState(article?.title ?? "");
   const [slug, setSlug]           = useState(article?.slug ?? "");
   const [excerpt, setExcerpt]     = useState(article?.excerpt ?? "");
-  const [category, setCategory]   = useState(article?.category ?? CATEGORIES[0]);
-  const [status, setStatus]       = useState<ArticleStatus>(article?.status ?? "Nháp");
+  const [category, setCategory]   = useState<ArticleCategory>(article?.category ?? CATEGORIES[0]);
+  const [status, setStatus]       = useState<ArticleStatus>(article?.status ?? "Nhap");
   const [tags, setTags]           = useState(article?.tags.join(", ") ?? "");
   const [scheduledAt, setScheduledAt] = useState(article?.scheduledAt?.slice(0, 16) ?? "");
   const [errors, setErrors]       = useState<Record<string, string>>({});
@@ -157,7 +147,7 @@ function ArticleFormModal({ article, onSave, onClose }: {
     const e: Record<string, string> = {};
     if (!title.trim()) e.title = "Bắt buộc";
     if (!excerpt.trim()) e.excerpt = "Bắt buộc";
-    if (status === "Đã lên lịch" && !scheduledAt) e.scheduledAt = "Chọn thời gian";
+    if (status === "DaLenLich" && !scheduledAt) e.scheduledAt = "Chọn thời gian";
     return e;
   };
 
@@ -172,9 +162,7 @@ function ArticleFormModal({ article, onSave, onClose }: {
       category,
       status,
       tags: tags.split(",").map(t => t.trim()).filter(Boolean),
-      scheduledAt: status === "Đã lên lịch" && scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
-      publishedAt: status === "Đã xuất bản" ? (article?.publishedAt ?? new Date().toISOString()) : undefined,
-      views: article?.views ?? 0,
+      scheduledAt: status === "DaLenLich" && scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
     });
     onClose();
   };
@@ -215,21 +203,21 @@ function ArticleFormModal({ article, onSave, onClose }: {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <label style={labelStyle}>Danh mục</label>
-              <select style={{ ...inputStyle, cursor: "pointer" }} value={category} onChange={e => setCategory(e.target.value)}>
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={category} onChange={e => setCategory(e.target.value as ArticleCategory)}>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
               <label style={labelStyle}>Trạng thái</label>
               <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(e.target.value as ArticleStatus)}>
-                <option value="Nháp">Nháp</option>
-                <option value="Đã xuất bản">Đã xuất bản</option>
-                <option value="Đã lên lịch">Đã lên lịch</option>
+                <option value="Nhap">Nháp</option>
+                <option value="DaXuatBan">Đã xuất bản</option>
+                <option value="DaLenLich">Đã lên lịch</option>
               </select>
             </div>
           </div>
 
-          {status === "Đã lên lịch" && (
+          {status === "DaLenLich" && (
             <div>
               <label style={labelStyle}>Thời gian xuất bản <span style={{ color: "#ef4444" }}>*</span></label>
               <input type="datetime-local" style={{ ...inputStyle, colorScheme: "dark", borderColor: errors.scheduledAt ? "#ef4444" : "rgba(30,42,80,0.9)" }} value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
@@ -280,8 +268,9 @@ function ArticleCard({ article, onView, onEdit, onDelete }: {
   article: Article;
   onView: () => void; onEdit: () => void; onDelete: () => void;
 }) {
-  const sc = STATUS_COLORS[article.status];
+  const sc = PAGE_STATUS_LABEL[article.status];
   const cc = CAT_COLORS[article.category] ?? "#3b82f6";
+  const statusLabel = STATUS_LABEL[article.status];
 
   return (
     <div className="glass-card" style={{ overflow: "hidden", display: "flex", flexDirection: "column", cursor: "pointer", borderColor: `${cc}20` }} onClick={onView}>
@@ -295,7 +284,7 @@ function ArticleCard({ article, onView, onEdit, onDelete }: {
           {article.category === "Hướng dẫn" ? "📖" : article.category === "Khuyến mãi" ? "🎁" : article.category === "Bảo mật" ? "🔒" : article.category === "Cập nhật" ? "🔄" : "📰"}
         </div>
         <div style={{ position: "absolute", bottom: 8, right: 10 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: sc.color, background: sc.bg, padding: "2px 8px", borderRadius: 99 }}>{article.status}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: sc.color, background: sc.bg, padding: "2px 8px", borderRadius: 99 }}>{statusLabel}</span>
         </div>
       </div>
 
@@ -347,7 +336,7 @@ function ArticleCard({ article, onView, onEdit, onDelete }: {
   );
 }
 
-/* ─── Pagination Button ──────────────────────────────────────── */
+/* ─── Pagination Button ──────────────────────────────────────────── */
 function PagBtn({ children, onClick, disabled = false, active = false }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; active?: boolean }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{ width: 30, height: 30, borderRadius: 6, fontSize: 12, fontWeight: active ? 700 : 400, cursor: disabled ? "default" : "pointer", border: "1px solid", borderColor: active ? "#3b82f6" : "rgba(30,42,80,0.8)", background: active ? "rgba(59,130,246,0.15)" : "transparent", color: disabled ? "#334155" : active ? "#60a5fa" : "#94a3b8", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
@@ -356,9 +345,12 @@ function PagBtn({ children, onClick, disabled = false, active = false }: { child
   );
 }
 
-/* ─── Main Page ──────────────────────────────────────────────── */
+/* ─── Main Page ──────────────────────────────────────────────────── */
 export default function NewsPage() {
-  const [articles, setArticles]   = useState<Article[]>(INITIAL_ARTICLES);
+  const [articles, setArticles]   = useState<Article[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [apiError, setApiError]   = useState<string | null>(null);
+  const [meta, setMeta]           = useState<ApiMeta>({ total: 0, page: 1, limit: PAGE_SIZE, totalPages: 1 });
   const [activeTab, setActiveTab] = useState("Tất cả");
   const [search, setSearch]       = useState("");
   const [page, setPage]           = useState(1);
@@ -367,46 +359,78 @@ export default function NewsPage() {
   const [deleting, setDeleting]   = useState<Article | null>(null);
   const [creating, setCreating]   = useState(false);
 
-  const filtered = articles.filter(a => {
-    const tabOk    = activeTab === "Tất cả" || a.status === activeTab;
-    const searchOk = !search || [a.title, a.excerpt, a.category, ...a.tags].some(s => s.toLowerCase().includes(search.toLowerCase()));
-    return tabOk && searchOk;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const count      = (s: string) => s === "Tất cả" ? articles.length : articles.filter(a => a.status === s).length;
-  const totalViews = articles.reduce((s, a) => s + a.views, 0);
-
-  const handleSave = useCallback((data: Partial<Article> & { id?: string }) => {
-    if (data.id) {
-      setArticles(prev => prev.map(a => a.id === data.id ? { ...a, ...data } : a));
-    } else {
-      const newArticle: Article = {
-        id: `n-${Date.now()}`,
-        author: "Admin",
-        createdAt: new Date().toISOString(),
-        ...data,
-      } as Article;
-      setArticles(prev => [newArticle, ...prev]);
-      setPage(1);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      const statusParam = activeTab === "Tất cả" ? undefined : STATUS_FROM_LABEL[activeTab];
+      const result = await articlesApi.list({ page, limit: PAGE_SIZE, search: search || undefined, status: statusParam });
+      setArticles(result.data);
+      setMeta(result.meta);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [page, search, activeTab]);
 
-  const handleDelete = useCallback((id: string) => {
-    setArticles(prev => prev.filter(a => a.id !== id));
-  }, []);
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const count = (tab: string) => {
+    if (tab === "Tất cả") return meta.total;
+    return articles.filter(a => STATUS_LABEL[a.status] === tab).length;
+  };
+  const totalViews = articles.reduce((s, a) => s + a.views, 0);
+  const publishedCount = articles.filter(a => a.status === "DaXuatBan").length;
+  const draftCount = articles.filter(a => a.status === "Nhap").length;
+
+  const handleSave = useCallback(async (data: { id?: string; title: string; slug: string; excerpt: string; category: ArticleCategory; status: ArticleStatus; tags: string[]; scheduledAt?: string }) => {
+    try {
+      if (data.id) {
+        await articlesApi.update(data.id, data);
+      } else {
+        await articlesApi.create(data);
+      }
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await articlesApi.delete(id);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
+
+  const handlePublish = useCallback(async (id: string) => {
+    try {
+      await articlesApi.publish(id);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
   return (
     <AdminLayout title="Tin tức" subtitle="Quản lý bài viết và blog">
       <div className="page-content">
 
         <StatsGrid cols={4}>
-          <StatCard label="Tổng bài viết" value={articles.length} change={3} changeLabel="so với tháng trước" icon="activity" color="blue" />
-          <StatCard label="Đã xuất bản" value={count("Đã xuất bản")} change={2} changeLabel="so với tháng trước" icon="activity" color="green" />
-          <StatCard label="Bản nháp" value={count("Nháp")} changeLabel="so với tháng trước" icon="activity" color="amber" />
+          <StatCard label="Tổng bài viết" value={meta.total} change={3} changeLabel="so với tháng trước" icon="activity" color="blue" />
+          <StatCard label="Đã xuất bản" value={publishedCount} change={2} changeLabel="so với tháng trước" icon="activity" color="green" />
+          <StatCard label="Bản nháp" value={draftCount} changeLabel="so với tháng trước" icon="activity" color="amber" />
           <StatCard label="Tổng lượt xem" value={totalViews} change={18} changeLabel="so với tháng trước" icon="activity" color="purple" />
         </StatsGrid>
+
+        {apiError && (
+          <div style={{ padding: "12px 16px", borderRadius: 10, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171", fontSize: 13 }}>
+            {apiError}
+          </div>
+        )}
 
         {/* Toolbar */}
         <div className="glass-card" style={{ padding: 16 }}>
@@ -445,9 +469,13 @@ export default function NewsPage() {
         </div>
 
         {/* Grid */}
-        {pageItems.length > 0 ? (
+        {loading ? (
+          <div className="glass-card" style={{ padding: "60px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+            <span style={{ display: "inline-block", width: 20, height: 20, border: "2px solid #334155", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+          </div>
+        ) : articles.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: 16 }}>
-            {pageItems.map(article => (
+            {articles.map(article => (
               <ArticleCard
                 key={article.id}
                 article={article}
@@ -479,17 +507,17 @@ export default function NewsPage() {
         )}
 
         {/* Pagination */}
-        {filtered.length > 0 && (
+        {meta.total > 0 && (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ fontSize: 12, color: "#475569" }}>
-              {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} / {filtered.length} bài viết
+              {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, meta.total)} / {meta.total} bài viết
             </span>
             <div style={{ display: "flex", gap: 4 }}>
               <PagBtn onClick={() => setPage(p => p - 1)} disabled={page === 1}><ChevronLeft size={14} /></PagBtn>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              {Array.from({ length: meta.totalPages }, (_, i) => i + 1).map(p => (
                 <PagBtn key={p} onClick={() => setPage(p)} active={p === page}>{p}</PagBtn>
               ))}
-              <PagBtn onClick={() => setPage(p => p + 1)} disabled={page === totalPages}><ChevronRight size={14} /></PagBtn>
+              <PagBtn onClick={() => setPage(p => p + 1)} disabled={page === meta.totalPages}><ChevronRight size={14} /></PagBtn>
             </div>
           </div>
         )}
@@ -500,8 +528,10 @@ export default function NewsPage() {
       {editing && <ArticleFormModal article={editing} onSave={handleSave} onClose={() => setEditing(null)} />}
       {viewing && (
         <PreviewModal
-          article={viewing} onClose={() => setViewing(null)}
+          article={viewing}
+          onClose={() => setViewing(null)}
           onEdit={() => { setEditing(viewing); setViewing(null); }}
+          onPublish={() => { handlePublish(viewing.id); setViewing(null); }}
         />
       )}
       {deleting && <DeleteModal article={deleting} onConfirm={() => handleDelete(deleting.id)} onClose={() => setDeleting(null)} />}

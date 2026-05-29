@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatCard, StatsGrid } from "@/components/ui/StatCard";
 import { Button, ActionButtons } from "@/components/ui/Button";
-import { categories as initialCategories } from "@/lib/mock-data";
+import { categoriesApi } from "@/lib/api";
 import { Search, Plus, X, Package, Tag, Hash, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Category, CategoryStatus } from "@/lib/types";
 
@@ -142,7 +142,7 @@ function CategoryDetailModal({ cat, onClose, onEdit }: { cat: Category; onClose:
 /* ─── Category Edit Modal ────────────────────────────────────── */
 function CategoryEditModal({ cat, onSave, onClose }: {
   cat: Category;
-  onSave: (id: string, data: Partial<Category>) => void;
+  onSave: (id: string, data: Partial<Category>) => Promise<void>;
   onClose: () => void;
 }) {
   const [name, setName]     = useState(cat.name);
@@ -207,7 +207,7 @@ function CategoryEditModal({ cat, onSave, onClose }: {
         </div>
         <div style={{ padding: "0 20px 20px", display: "flex", gap: 10 }}>
           <Button variant="secondary" size="sm" onClick={onClose} style={{ flex: 1 }}>Hủy</Button>
-          <Button variant="primary" size="sm" style={{ flex: 1 }} onClick={() => { onSave(cat.id, { name, slug, icon, color, status }); onClose(); }}>Lưu thay đổi</Button>
+          <Button variant="primary" size="sm" style={{ flex: 1 }} onClick={() => onSave(cat.id, { name, slug, icon, color, status })}>Lưu thay đổi</Button>
         </div>
       </div>
     </Modal>
@@ -215,7 +215,7 @@ function CategoryEditModal({ cat, onSave, onClose }: {
 }
 
 /* ─── Create Category Modal ──────────────────────────────────── */
-function CreateCategoryModal({ onCreate, onClose }: { onCreate: (cat: Category) => void; onClose: () => void }) {
+function CreateCategoryModal({ onCreate, onClose }: { onCreate: (body: Record<string, unknown>) => Promise<void>; onClose: () => void }) {
   const [name, setName]     = useState("");
   const [slug, setSlug]     = useState("");
   const [icon, setIcon]     = useState("📦");
@@ -233,11 +233,10 @@ function CreateCategoryModal({ onCreate, onClose }: { onCreate: (cat: Category) 
     return e;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
-    onCreate({ id: `cat-${Date.now()}`, name: name.trim(), slug: slug.trim(), icon, color, productCount: 0, status, createdAt: new Date().toISOString() });
-    onClose();
+    await onCreate({ name: name.trim(), slug: slug.trim(), icon, color, status });
   };
 
   return (
@@ -321,7 +320,7 @@ function CreateCategoryModal({ onCreate, onClose }: { onCreate: (cat: Category) 
 }
 
 /* ─── Delete Confirm Modal ───────────────────────────────────── */
-function DeleteModal({ cat, onConfirm, onClose }: { cat: Category; onConfirm: () => void; onClose: () => void }) {
+function DeleteModal({ cat, onConfirm, onClose }: { cat: Category; onConfirm: () => Promise<void>; onClose: () => void }) {
   return (
     <Modal onClose={onClose}>
       <div style={{ width: 360, maxWidth: "90vw", background: "#0d1226", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 16, overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
@@ -334,7 +333,7 @@ function DeleteModal({ cat, onConfirm, onClose }: { cat: Category; onConfirm: ()
         </div>
         <div style={{ padding: "0 24px 24px", display: "flex", gap: 10 }}>
           <Button variant="secondary" size="sm" onClick={onClose} style={{ flex: 1 }}>Hủy</Button>
-          <Button variant="danger" size="sm" onClick={() => { onConfirm(); onClose(); }} style={{ flex: 1 }}>Xóa</Button>
+          <Button variant="danger" size="sm" onClick={async () => { await onConfirm(); onClose(); }} style={{ flex: 1 }}>Xóa</Button>
         </div>
       </div>
     </Modal>
@@ -343,16 +342,31 @@ function DeleteModal({ cat, onConfirm, onClose }: { cat: Category; onConfirm: ()
 
 /* ─── Main Page ──────────────────────────────────────────────── */
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState([...initialCategories]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [apiError, setApiError]     = useState<string | null>(null);
   const [search, setSearch]         = useState("");
   const [viewing, setViewing]       = useState<Category | null>(null);
   const [editing, setEditing]       = useState<Category | null>(null);
   const [deleting, setDeleting]     = useState<Category | null>(null);
   const [creating, setCreating]     = useState(false);
   const [page, setPage]             = useState(1);
-  const [toggles, setToggles]       = useState<Record<string, boolean>>(
-    Object.fromEntries(initialCategories.map(c => [c.id, c.status === "Hiển thị"]))
-  );
+  const [toggles, setToggles]       = useState<Record<string, boolean>>({});
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await categoriesApi.list();
+      setCategories(data);
+      setToggles(Object.fromEntries(data.map(c => [c.id, c.status === "Hiển thị"])));
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const filtered = categories.filter(c =>
     !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.slug.toLowerCase().includes(search.toLowerCase())
@@ -361,20 +375,43 @@ export default function CategoriesPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const handleSaveEdit = useCallback((id: string, data: Partial<Category>) => {
-    setCategories(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
-    if (data.status) setToggles(prev => ({ ...prev, [id]: data.status === "Hiển thị" }));
-  }, []);
+  const handleSaveEdit = useCallback(async (id: string, data: Partial<Category>) => {
+    try {
+      await categoriesApi.update(id, data as Record<string, unknown>);
+      await fetchData();
+      setEditing(null);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
-  const handleDelete = useCallback((id: string) => {
-    setCategories(prev => prev.filter(c => c.id !== id));
-  }, []);
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await categoriesApi.delete(id);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
-  const handleToggle = (id: string) => {
-    const newVal = !toggles[id];
-    setToggles(prev => ({ ...prev, [id]: newVal }));
-    setCategories(prev => prev.map(c => c.id === id ? { ...c, status: newVal ? "Hiển thị" : "Ẩn" } : c));
-  };
+  const handleToggle = useCallback(async (id: string) => {
+    try {
+      await categoriesApi.toggle(id);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
+
+  const handleCreate = useCallback(async (body: Record<string, unknown>) => {
+    try {
+      await categoriesApi.create(body);
+      await fetchData();
+      setCreating(false);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
   const visibleCount = categories.filter(c => c.status === "Hiển thị").length;
   const hiddenCount  = categories.filter(c => c.status === "Ẩn").length;
@@ -382,6 +419,13 @@ export default function CategoriesPage() {
   return (
     <AdminLayout title="Danh mục" subtitle="Quản lý danh mục sản phẩm">
       <div className="page-content">
+
+        {apiError && (
+          <div style={{ padding: "12px 16px", borderRadius: 10, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span>{apiError}</span>
+            <button onClick={() => setApiError(null)} style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", padding: 4 }}><X size={14} /></button>
+          </div>
+        )}
 
         <StatsGrid cols={4}>
           <StatCard label="Tổng danh mục" value={categories.length} change={8.3} changeLabel="so với tháng trước" icon="package" color="blue" />
@@ -403,60 +447,68 @@ export default function CategoriesPage() {
 
         {/* Table */}
         <div className="glass-card" style={{ overflowX: "auto" }}>
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Danh mục</th><th>Slug</th><th>Số sản phẩm</th><th>Trạng thái</th><th>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageItems.map(cat => (
-                <tr key={cat.id} onClick={() => setViewing(cat)} style={{ cursor: "pointer" }}>
-                  <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div style={{ width: 42, height: 42, borderRadius: 12, background: `${cat.color}18`, boxShadow: `0 0 14px ${cat.color}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
-                        {cat.icon}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0" }}>{cat.name}</div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
-                          <div style={{ width: 10, height: 10, borderRadius: 99, background: cat.color, boxShadow: `0 0 6px ${cat.color}80` }} />
-                          <span style={{ fontSize: 10, color: "#475569", fontFamily: "monospace" }}>{cat.color}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td><span style={{ fontFamily: "monospace", color: "#64748b", fontSize: 11 }}>/{cat.slug}</span></td>
-                  <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 64, height: 5, background: "rgba(30,42,80,0.8)", borderRadius: 99, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${Math.min((cat.productCount / 15) * 100, 100)}%`, background: cat.color, borderRadius: 99 }} />
-                      </div>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>{cat.productCount}</span>
-                    </div>
-                  </td>
-                  <td onClick={e => e.stopPropagation()}>
-                    <label className="toggle">
-                      <input type="checkbox" checked={toggles[cat.id] ?? false} onChange={() => handleToggle(cat.id)} />
-                      <span className="toggle-slider" />
-                    </label>
-                  </td>
-                  <td onClick={e => e.stopPropagation()}>
-                    <ActionButtons
-                      onView={() => setViewing(cat)}
-                      onEdit={() => setEditing(cat)}
-                      onDelete={() => setDeleting(cat)}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 && (
-            <div className="empty-state">
-              <span style={{ fontSize: 36 }}>🗂️</span>
-              <div style={{ color: "#475569", fontSize: 13 }}>Không tìm thấy danh mục</div>
+          {loading ? (
+            <div style={{ textAlign: "center", padding: 60, color: "#475569" }}>
+              <span style={{ display: "inline-block", width: 24, height: 24, border: "2px solid #334155", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
             </div>
+          ) : (
+            <>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Danh mục</th><th>Slug</th><th>Số sản phẩm</th><th>Trạng thái</th><th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageItems.map(cat => (
+                    <tr key={cat.id} onClick={() => setViewing(cat)} style={{ cursor: "pointer" }}>
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{ width: 42, height: 42, borderRadius: 12, background: `${cat.color}18`, boxShadow: `0 0 14px ${cat.color}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
+                            {cat.icon}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0" }}>{cat.name}</div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+                              <div style={{ width: 10, height: 10, borderRadius: 99, background: cat.color, boxShadow: `0 0 6px ${cat.color}80` }} />
+                              <span style={{ fontSize: 10, color: "#475569", fontFamily: "monospace" }}>{cat.color}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span style={{ fontFamily: "monospace", color: "#64748b", fontSize: 11 }}>/{cat.slug}</span></td>
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ width: 64, height: 5, background: "rgba(30,42,80,0.8)", borderRadius: 99, overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${Math.min((cat.productCount / 15) * 100, 100)}%`, background: cat.color, borderRadius: 99 }} />
+                          </div>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>{cat.productCount}</span>
+                        </div>
+                      </td>
+                      <td onClick={e => e.stopPropagation()}>
+                        <label className="toggle">
+                          <input type="checkbox" checked={toggles[cat.id] ?? false} onChange={() => handleToggle(cat.id)} />
+                          <span className="toggle-slider" />
+                        </label>
+                      </td>
+                      <td onClick={e => e.stopPropagation()}>
+                        <ActionButtons
+                          onView={() => setViewing(cat)}
+                          onEdit={() => setEditing(cat)}
+                          onDelete={() => setDeleting(cat)}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filtered.length === 0 && (
+                <div className="empty-state">
+                  <span style={{ fontSize: 36 }}>🗂️</span>
+                  <div style={{ color: "#475569", fontSize: 13 }}>Không tìm thấy danh mục</div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -475,7 +527,7 @@ export default function CategoriesPage() {
       </div>
 
       {/* Modals */}
-      {creating && <CreateCategoryModal onCreate={cat => setCategories(prev => [cat, ...prev])} onClose={() => setCreating(false)} />}
+      {creating && <CreateCategoryModal onCreate={handleCreate} onClose={() => setCreating(false)} />}
       {viewing && <CategoryDetailModal cat={viewing} onClose={() => setViewing(null)} onEdit={() => { setEditing(viewing); setViewing(null); }} />}
       {editing && <CategoryEditModal cat={editing} onSave={handleSaveEdit} onClose={() => setEditing(null)} />}
       {deleting && <DeleteModal cat={deleting} onConfirm={() => handleDelete(deleting.id)} onClose={() => setDeleting(null)} />}

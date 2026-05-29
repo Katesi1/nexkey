@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatCard, StatsGrid } from "@/components/ui/StatCard";
-import { paymentStats } from "@/lib/mock-data";
+import { paymentsApi } from "@/lib/api";
 import { formatVND } from "@/lib/utils";
 import {
   Eye, EyeOff, Save, Zap, ChevronDown, ChevronUp,
@@ -26,13 +26,15 @@ type Gateway = {
   status: GatewayStatus;
 };
 
-/* ─── Initial gateways ───────────────────────────────────────── */
-const INIT_GATEWAYS: Gateway[] = [
-  { id: "vnpay",   name: "VNPay",   icon: "💳", description: "Cổng thanh toán VNPay — hỗ trợ ATM, Visa, MasterCard, QR", color: "#009BDE", enabled: true,  testMode: false, merchantId: "NEXKEY_VNPAY_001", secretKey: "vn-secret-key-xxx", webhookUrl: "https://nexkey.vn/webhook/vnpay",   status: "connected" },
-  { id: "momo",    name: "MoMo",    icon: "🎀", description: "Ví điện tử MoMo — thanh toán nhanh qua QR Code và app",     color: "#A50064", enabled: true,  testMode: false, merchantId: "NEXKEY_MOMO_001",  secretKey: "momo-secret-key-xxx", webhookUrl: "https://nexkey.vn/webhook/momo",    status: "connected" },
-  { id: "banking", name: "Banking", icon: "🏦", description: "Chuyển khoản ngân hàng — VietQR, tự động xác nhận",          color: "#3b82f6", enabled: true,  testMode: false, merchantId: "0312345678",       secretKey: "",                   webhookUrl: "https://nexkey.vn/webhook/banking", status: "connected" },
-  { id: "card",    name: "Thẻ quốc tế", icon: "💰", description: "Visa, Mastercard, JCB — tích hợp qua Stripe/PayPal",  color: "#10b981", enabled: false, testMode: true,  merchantId: "",                 secretKey: "",                   webhookUrl: "",                                  status: "unconfigured" },
-];
+type PaymentStatEntry = { method: string; count: number; total: number; percentage: number };
+
+/* ─── Static gateway metadata (display-only) ─────────────────── */
+const GW_META: Record<string, { icon: string; description: string; color: string }> = {
+  vnpay:   { icon: "💳", description: "Cổng thanh toán VNPay — hỗ trợ ATM, Visa, MasterCard, QR", color: "#009BDE" },
+  momo:    { icon: "🎀", description: "Ví điện tử MoMo — thanh toán nhanh qua QR Code và app",     color: "#A50064" },
+  banking: { icon: "🏦", description: "Chuyển khoản ngân hàng — VietQR, tự động xác nhận",          color: "#3b82f6" },
+  card:    { icon: "💰", description: "Visa, Mastercard, JCB — tích hợp qua Stripe/PayPal",         color: "#10b981" },
+};
 
 /* ─── Toast ──────────────────────────────────────────────────── */
 type ToastType = "success" | "error" | "info";
@@ -54,7 +56,7 @@ function Toast({ msg, type, onClose }: { msg: string; type: ToastType; onClose: 
 /* ─── Gateway Card ───────────────────────────────────────────── */
 function GatewayCard({ gw, stat, onChange, onTest, onSave }: {
   gw: Gateway;
-  stat?: typeof paymentStats[0];
+  stat?: PaymentStatEntry;
   onChange: (id: string, data: Partial<Gateway>) => void;
   onTest: (gw: Gateway) => void;
   onSave: (gw: Gateway) => void;
@@ -176,28 +178,85 @@ function GatewayCard({ gw, stat, onChange, onTest, onSave }: {
 
 /* ─── Main Page ──────────────────────────────────────────────── */
 export default function PaymentsPage() {
-  const [gateways, setGateways] = useState<Gateway[]>(INIT_GATEWAYS);
-  const [toast, setToast]       = useState<{ msg: string; type: ToastType } | null>(null);
+  const [gateways, setGateways]   = useState<Gateway[]>([]);
+  const [paymentStats, setPaymentStats] = useState<PaymentStatEntry[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [toast, setToast]         = useState<{ msg: string; type: ToastType } | null>(null);
 
   const showToast = useCallback((msg: string, type: ToastType = "success") => setToast({ msg, type }), []);
+
+  // Fetch gateways + stats on mount
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([paymentsApi.gateways(), paymentsApi.stats()])
+      .then(([gwList, statsData]) => {
+        const mapped: Gateway[] = gwList.map(gw => {
+          const meta = GW_META[gw.id] ?? { icon: "💳", description: "", color: "#64748b" };
+          return {
+            id: gw.id,
+            name: gw.name,
+            icon: meta.icon,
+            description: meta.description,
+            color: meta.color,
+            enabled: gw.enabled,
+            testMode: gw.testMode,
+            merchantId: gw.merchantId ?? "",
+            secretKey: "",
+            webhookUrl: gw.webhookUrl ?? "",
+            status: gw.merchantId ? "connected" : "unconfigured" as GatewayStatus,
+          };
+        });
+        setGateways(mapped);
+
+        const totalRev = statsData.byMethod.reduce((s, p) => s + p.revenue, 0);
+        const stats: PaymentStatEntry[] = statsData.byMethod.map(p => ({
+          method: p.method,
+          count: p.count,
+          total: p.revenue,
+          percentage: totalRev > 0 ? Math.round((p.revenue / totalRev) * 100) : 0,
+        }));
+        setPaymentStats(stats);
+      })
+      .catch(() => showToast("Không thể tải dữ liệu thanh toán", "error"))
+      .finally(() => setLoading(false));
+  }, [showToast]);
 
   const handleChange = useCallback((id: string, data: Partial<Gateway>) => {
     setGateways(prev => prev.map(g => g.id === id ? { ...g, ...data } : g));
   }, []);
 
-  const handleTest = useCallback((gw: Gateway) => {
-    if (!gw.merchantId || !gw.secretKey) {
-      showToast(`Vui lòng nhập đầy đủ Merchant ID và Secret Key cho ${gw.name}`, "error");
+  const handleTest = useCallback(async (gw: Gateway) => {
+    if (!gw.merchantId) {
+      showToast(`Vui lòng nhập Merchant ID cho ${gw.name}`, "error");
       return;
     }
     showToast(`Đang kiểm tra kết nối ${gw.name}...`, "info");
-    setTimeout(() => showToast(`✓ Kết nối ${gw.name} thành công!`, "success"), 1800);
+    try {
+      const result = await paymentsApi.testGateway(gw.id);
+      if (result.success) {
+        showToast(`✓ ${result.message}`, "success");
+      } else {
+        showToast(result.message || `Kết nối ${gw.name} thất bại`, "error");
+      }
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : `Kiểm tra ${gw.name} thất bại`, "error");
+    }
   }, [showToast]);
 
-  const handleSave = useCallback((saved: Gateway) => {
-    const isConfigured = saved.merchantId.trim() !== "";
-    setGateways(prev => prev.map(g => g.id === saved.id ? { ...saved, status: isConfigured ? "connected" : "unconfigured" } : g));
-    showToast(`Đã lưu cấu hình ${saved.name}`, "success");
+  const handleSave = useCallback(async (saved: Gateway) => {
+    try {
+      await paymentsApi.updateGateway(saved.id, {
+        enabled: saved.enabled,
+        testMode: saved.testMode,
+        merchantId: saved.merchantId,
+        webhookUrl: saved.webhookUrl,
+      });
+      const isConfigured = saved.merchantId.trim() !== "";
+      setGateways(prev => prev.map(g => g.id === saved.id ? { ...saved, status: isConfigured ? "connected" : "unconfigured" } : g));
+      showToast(`Đã lưu cấu hình ${saved.name}`, "success");
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : `Lưu cấu hình ${saved.name} thất bại`, "error");
+    }
   }, [showToast]);
 
   const totalRevenue   = paymentStats.reduce((s, p) => s + p.total, 0);
@@ -205,13 +264,20 @@ export default function PaymentsPage() {
   const activeCount    = gateways.filter(g => g.enabled).length;
   const connectedCount = gateways.filter(g => g.status === "connected").length;
 
-  const statMap: Record<string, typeof paymentStats[0]> = {};
+  const statMap: Record<string, PaymentStatEntry> = {};
   paymentStats.forEach(p => { statMap[p.method.toLowerCase()] = p; });
 
   return (
     <AdminLayout title="Phương thức thanh toán" subtitle="Cấu hình và quản lý cổng thanh toán">
       <div className="page-content">
 
+        {loading && (
+          <div style={{ textAlign: "center", padding: 40 }}>
+            <span style={{ display: "inline-block", width: 24, height: 24, border: "2px solid #334155", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+          </div>
+        )}
+
+        {!loading && <>
         <StatsGrid cols={4}>
           <StatCard label="Tổng doanh thu" value={totalRevenue} isCurrency change={8.2} changeLabel="so với tháng trước" icon="money" color="green" />
           <StatCard label="Tổng giao dịch" value={totalTx} change={12.5} changeLabel="so với tháng trước" icon="cart" color="blue" />
@@ -273,6 +339,7 @@ export default function PaymentsPage() {
         <div style={{ padding: "14px 18px", borderRadius: 10, background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)", fontSize: 12, color: "#64748b", lineHeight: 1.6 }}>
           <span style={{ color: "#60a5fa", fontWeight: 600 }}>💡 Lưu ý:</span> Click vào mũi tên ▼ để mở rộng và cấu hình từng cổng thanh toán. Bật "Test Mode" để kiểm thử mà không trừ tiền thật. Webhook URL phải được cấu hình chính xác để nhận thông báo thanh toán tự động.
         </div>
+        </>}
       </div>
 
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}

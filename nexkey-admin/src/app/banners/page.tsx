@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatCard, StatsGrid } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { banners as initialBanners } from "@/lib/mock-data";
+import { bannersApi } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 import type { Banner, BannerPosition, BannerStatus } from "@/lib/types";
 import {
@@ -114,7 +114,7 @@ function BannerPreviewModal({ banner, isActive, onClose, onEdit, onToggle }: {
 /* ─── Banner Form Modal (Create + Edit) ──────────────────────── */
 function BannerFormModal({ banner, onSave, onClose }: {
   banner?: Banner;
-  onSave: (data: Omit<Banner, "id" | "createdAt"> & { id?: string }) => void;
+  onSave: (data: Omit<Banner, "id" | "createdAt"> & { id?: string }) => Promise<void>;
   onClose: () => void;
 }) {
   const isEdit = !!banner;
@@ -125,6 +125,8 @@ function BannerFormModal({ banner, onSave, onClose }: {
   const [sortOrder, setSortOrder] = useState(String(banner?.sortOrder ?? 1));
   const [status, setStatus]     = useState<BannerStatus>(banner?.status ?? "Hiển thị");
   const [errors, setErrors]     = useState<Record<string, string>>({});
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const pc = POS_COLORS[position];
 
@@ -135,11 +137,25 @@ function BannerFormModal({ banner, onSave, onClose }: {
     return e;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
-    onSave({ id: banner?.id, title: title.trim(), image: image.trim(), link: link.trim() || undefined, position, sortOrder: Number(sortOrder) || 1, status });
-    onClose();
+    await onSave({ id: banner?.id, title: title.trim(), image: image.trim(), link: link.trim() || undefined, position, sortOrder: Number(sortOrder) || 1, status });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await bannersApi.upload(file);
+      setImage(url);
+    } catch {
+      // silently ignore upload errors in form
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", borderRadius: 8, fontSize: 13, background: "#060a15", border: "1px solid rgba(30,42,80,0.9)", color: "#e2e8f0", outline: "none", boxSizing: "border-box" };
@@ -180,7 +196,17 @@ function BannerFormModal({ banner, onSave, onClose }: {
 
           <div>
             <label style={labelStyle}>Đường dẫn ảnh <span style={{ color: "#ef4444" }}>*</span></label>
-            <input style={{ ...inputStyle, fontFamily: "monospace", fontSize: 12, borderColor: errors.image ? "#ef4444" : "rgba(30,42,80,0.9)" }} value={image} onChange={e => setImage(e.target.value)} placeholder="/banners/win11.jpg" />
+            <div style={{ display: "flex", gap: 8 }}>
+              <input style={{ ...inputStyle, fontFamily: "monospace", fontSize: 12, borderColor: errors.image ? "#ef4444" : "rgba(30,42,80,0.9)" }} value={image} onChange={e => setImage(e.target.value)} placeholder="/banners/win11.jpg" />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                style={{ padding: "0 12px", borderRadius: 8, border: "1px solid rgba(30,42,80,0.9)", background: "rgba(59,130,246,0.08)", color: uploading ? "#475569" : "#60a5fa", cursor: uploading ? "default" : "pointer", fontSize: 12, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 5 }}
+              >
+                <Upload size={12} />{uploading ? "Đang tải..." : "Upload"}
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileChange} />
+            </div>
             {errors.image && <span style={{ fontSize: 11, color: "#ef4444", marginTop: 4, display: "block" }}>{errors.image}</span>}
           </div>
 
@@ -226,7 +252,7 @@ function BannerFormModal({ banner, onSave, onClose }: {
 }
 
 /* ─── Delete Confirm Modal ───────────────────────────────────── */
-function DeleteModal({ banner, onConfirm, onClose }: { banner: Banner; onConfirm: () => void; onClose: () => void }) {
+function DeleteModal({ banner, onConfirm, onClose }: { banner: Banner; onConfirm: () => Promise<void>; onClose: () => void }) {
   return (
     <Modal onClose={onClose}>
       <div style={{ width: 360, maxWidth: "90vw", background: "#0d1226", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 16, overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
@@ -239,7 +265,7 @@ function DeleteModal({ banner, onConfirm, onClose }: { banner: Banner; onConfirm
         </div>
         <div style={{ padding: "0 24px 24px", display: "flex", gap: 10 }}>
           <Button variant="secondary" size="sm" onClick={onClose} style={{ flex: 1 }}>Hủy</Button>
-          <Button variant="danger" size="sm" onClick={() => { onConfirm(); onClose(); }} style={{ flex: 1 }}>Xóa</Button>
+          <Button variant="danger" size="sm" onClick={async () => { await onConfirm(); onClose(); }} style={{ flex: 1 }}>Xóa</Button>
         </div>
       </div>
     </Modal>
@@ -322,35 +348,63 @@ function BannerCard({ banner, isActive, onToggle, onView, onEdit, onDelete }: {
 
 /* ─── Main Page ──────────────────────────────────────────────── */
 export default function BannersPage() {
-  const [banners, setBanners] = useState([...initialBanners]);
-  const [toggles, setToggles] = useState<Record<string, boolean>>(
-    Object.fromEntries(initialBanners.map(b => [b.id, b.status === "Hiển thị"]))
-  );
+  const [banners, setBanners]   = useState<Banner[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [toggles, setToggles]   = useState<Record<string, boolean>>({});
   const [viewing, setViewing]   = useState<Banner | null>(null);
   const [editing, setEditing]   = useState<Banner | null>(null);
   const [deleting, setDeleting] = useState<Banner | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const handleToggle = useCallback((id: string) => {
-    setToggles(prev => ({ ...prev, [id]: !prev[id] }));
-    setBanners(prev => prev.map(b => b.id === id ? { ...b, status: toggles[id] ? "Ẩn" : "Hiển thị" } : b));
-  }, [toggles]);
-
-  const handleSave = useCallback((data: Omit<Banner, "id" | "createdAt"> & { id?: string }) => {
-    if (data.id) {
-      setBanners(prev => prev.map(b => b.id === data.id ? { ...b, ...data } : b));
-      setToggles(prev => ({ ...prev, [data.id!]: data.status === "Hiển thị" }));
-    } else {
-      const newBanner: Banner = { ...data, id: `b-${Date.now()}`, createdAt: new Date().toISOString() };
-      setBanners(prev => [...prev, newBanner]);
-      setToggles(prev => ({ ...prev, [newBanner.id]: newBanner.status === "Hiển thị" }));
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await bannersApi.list();
+      setBanners(data);
+      setToggles(Object.fromEntries(data.map(b => [b.id, b.status === "Hiển thị"])));
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const handleDelete = useCallback((id: string) => {
-    setBanners(prev => prev.filter(b => b.id !== id));
-    setToggles(prev => { const n = { ...prev }; delete n[id]; return n; });
-  }, []);
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleToggle = useCallback(async (id: string) => {
+    try {
+      await bannersApi.toggle(id);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
+
+  const handleSave = useCallback(async (data: Omit<Banner, "id" | "createdAt"> & { id?: string }) => {
+    try {
+      if (data.id) {
+        const { id, ...rest } = data;
+        await bannersApi.update(id, rest as Record<string, unknown>);
+      } else {
+        await bannersApi.create(data as Record<string, unknown>);
+      }
+      await fetchData();
+      setEditing(null);
+      setCreating(false);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await bannersApi.delete(id);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
   const activeCount  = Object.values(toggles).filter(Boolean).length;
   const hiddenCount  = Object.values(toggles).filter(v => !v).length;
@@ -359,6 +413,13 @@ export default function BannersPage() {
   return (
     <AdminLayout title="Banner" subtitle="Quản lý banner quảng cáo trên website">
       <div className="page-content">
+
+        {apiError && (
+          <div style={{ padding: "12px 16px", borderRadius: 10, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span>{apiError}</span>
+            <button onClick={() => setApiError(null)} style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", padding: 4 }}><X size={14} /></button>
+          </div>
+        )}
 
         <StatsGrid cols={4}>
           <StatCard label="Tổng banner" value={banners.length} change={2} changeLabel="so với tháng trước" icon="activity" color="blue" />
@@ -375,7 +436,7 @@ export default function BannersPage() {
               <div style={{ fontSize: 12, color: "#475569", marginTop: 2 }}>Quản lý và sắp xếp banner hiển thị trên website</div>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <Button variant="secondary" size="sm" icon={<Upload size={13} />}>Upload ảnh</Button>
+              <Button variant="secondary" size="sm" icon={<Upload size={13} />} onClick={() => setCreating(true)}>Upload ảnh</Button>
               <Button variant="primary" size="sm" icon={<Plus size={13} />} onClick={() => setCreating(true)}>Thêm banner</Button>
             </div>
           </div>
@@ -396,35 +457,41 @@ export default function BannersPage() {
         </div>
 
         {/* Banner grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
-          {banners.map(banner => (
-            <BannerCard
-              key={banner.id}
-              banner={banner}
-              isActive={toggles[banner.id] ?? false}
-              onToggle={() => handleToggle(banner.id)}
-              onView={() => setViewing(banner)}
-              onEdit={() => setEditing(banner)}
-              onDelete={() => setDeleting(banner)}
-            />
-          ))}
+        {loading ? (
+          <div style={{ textAlign: "center", padding: 60, color: "#475569" }}>
+            <span style={{ display: "inline-block", width: 24, height: 24, border: "2px solid #334155", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+            {banners.map(banner => (
+              <BannerCard
+                key={banner.id}
+                banner={banner}
+                isActive={toggles[banner.id] ?? false}
+                onToggle={() => handleToggle(banner.id)}
+                onView={() => setViewing(banner)}
+                onEdit={() => setEditing(banner)}
+                onDelete={() => setDeleting(banner)}
+              />
+            ))}
 
-          {/* Add new card */}
-          <div
-            onClick={() => setCreating(true)}
-            style={{ minHeight: 260, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, border: "2px dashed rgba(30,42,80,0.8)", borderRadius: 14, background: "rgba(13,18,38,0.3)", cursor: "pointer", transition: "all 0.2s" }}
-            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(59,130,246,0.4)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(59,130,246,0.04)"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(30,42,80,0.8)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(13,18,38,0.3)"; }}
-          >
-            <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Plus size={22} style={{ color: "#3b82f6" }} />
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#64748b" }}>Thêm banner mới</div>
-              <div style={{ fontSize: 11, color: "#334155", marginTop: 4 }}>Click để tạo banner</div>
+            {/* Add new card */}
+            <div
+              onClick={() => setCreating(true)}
+              style={{ minHeight: 260, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, border: "2px dashed rgba(30,42,80,0.8)", borderRadius: 14, background: "rgba(13,18,38,0.3)", cursor: "pointer", transition: "all 0.2s" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(59,130,246,0.4)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(59,130,246,0.04)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(30,42,80,0.8)"; (e.currentTarget as HTMLDivElement).style.background = "rgba(13,18,38,0.3)"; }}
+            >
+              <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Plus size={22} style={{ color: "#3b82f6" }} />
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#64748b" }}>Thêm banner mới</div>
+                <div style={{ fontSize: 11, color: "#334155", marginTop: 4 }}>Click để tạo banner</div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Modals */}

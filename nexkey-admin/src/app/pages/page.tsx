@@ -9,34 +9,16 @@ import {
   Globe, Lock, BookOpen, Info, Home, ShieldCheck, HelpCircle,
   ExternalLink, Clock, ToggleLeft, ToggleRight, Hash,
 } from "lucide-react";
+import { pagesApi } from "@/lib/api";
+import type { StaticPage, PageStatus } from "@/lib/types";
 
-/* ─── Types ──────────────────────────────────────────────────── */
-type PageStatus = "Hiển thị" | "Ẩn";
-
-type StaticPage = {
-  id: string;
-  title: string;
-  slug: string;
-  description: string;
-  content: string;
-  status: PageStatus;
-  updatedAt: string;
-  wordCount: number;
-  isSystem: boolean;
+/* ─── Display label maps ─────────────────────────────────────────── */
+const STATUS_LABEL: Record<PageStatus, string> = {
+  HienThi: "Hiển thị",
+  An:      "Ẩn",
 };
 
-/* ─── Mock data ──────────────────────────────────────────────── */
-const INITIAL_PAGES: StaticPage[] = [
-  { id: "pg-1", title: "Trang chủ", slug: "/", description: "Trang chủ chính của NexKey - mua key phần mềm bản quyền", content: "Chào mừng đến với NexKey...", status: "Hiển thị", updatedAt: "2024-05-20", wordCount: 320, isSystem: true },
-  { id: "pg-2", title: "Về chúng tôi", slug: "/about", description: "Thông tin về NexKey, sứ mệnh và đội ngũ", content: "NexKey là nền tảng...", status: "Hiển thị", updatedAt: "2024-04-15", wordCount: 540, isSystem: false },
-  { id: "pg-3", title: "Chính sách bảo mật", slug: "/privacy", description: "Chính sách bảo vệ dữ liệu và quyền riêng tư người dùng", content: "Chúng tôi cam kết...", status: "Hiển thị", updatedAt: "2024-03-10", wordCount: 1240, isSystem: true },
-  { id: "pg-4", title: "Điều khoản sử dụng", slug: "/terms", description: "Quy định và điều khoản khi sử dụng dịch vụ NexKey", content: "Bằng cách sử dụng...", status: "Hiển thị", updatedAt: "2024-03-10", wordCount: 980, isSystem: true },
-  { id: "pg-5", title: "Hướng dẫn mua hàng", slug: "/guide", description: "Hướng dẫn từng bước mua và kích hoạt key phần mềm", content: "Bước 1: Chọn sản phẩm...", status: "Hiển thị", updatedAt: "2024-05-01", wordCount: 760, isSystem: false },
-  { id: "pg-6", title: "Câu hỏi thường gặp", slug: "/faq", description: "Giải đáp các thắc mắc phổ biến về sản phẩm và dịch vụ", content: "Q: Key có bản quyền không?...", status: "Hiển thị", updatedAt: "2024-05-10", wordCount: 420, isSystem: false },
-  { id: "pg-7", title: "Liên hệ", slug: "/contact", description: "Thông tin liên hệ hỗ trợ khách hàng", content: "Email: support@nexkey.vn...", status: "Ẩn", updatedAt: "2024-04-01", wordCount: 180, isSystem: false },
-];
-
-/* ─── Constants ──────────────────────────────────────────────── */
+/* ─── Constants ──────────────────────────────────────────────────── */
 const PAGE_ICONS: Record<string, React.ReactNode> = {
   "/":        <Home size={18} style={{ color: "#3b82f6" }} />,
   "/about":   <Info size={18} style={{ color: "#8b5cf6" }} />,
@@ -58,7 +40,7 @@ const PAGE_COLORS: Record<string, string> = {
 const getIcon  = (slug: string) => PAGE_ICONS[slug]  ?? <FileText size={18} style={{ color: "#64748b" }} />;
 const getColor = (slug: string) => PAGE_COLORS[slug] ?? "#64748b";
 
-/* ─── Modal wrapper ──────────────────────────────────────────── */
+/* ─── Modal wrapper ──────────────────────────────────────────────── */
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -72,12 +54,12 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
   );
 }
 
-/* ─── Page Preview Modal ─────────────────────────────────────── */
+/* ─── Page Preview Modal ─────────────────────────────────────────── */
 function PagePreviewModal({ page, onClose, onEdit, onToggle }: {
   page: StaticPage; onClose: () => void; onEdit: () => void; onToggle: () => void;
 }) {
   const color   = getColor(page.slug);
-  const isVisible = page.status === "Hiển thị";
+  const isVisible = page.status === "HienThi";
 
   return (
     <Modal onClose={onClose}>
@@ -93,7 +75,7 @@ function PagePreviewModal({ page, onClose, onEdit, onToggle }: {
             <div style={{ fontSize: 17, fontWeight: 800, color: "#f1f5f9" }}>{page.title}</div>
             <div style={{ fontFamily: "monospace", fontSize: 11, color: "#3b82f6", marginTop: 3 }}>{page.slug}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: isVisible ? "#10b981" : "#64748b", background: isVisible ? "rgba(16,185,129,0.12)" : "rgba(100,116,139,0.12)", padding: "2px 8px", borderRadius: 99 }}>{page.status}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: isVisible ? "#10b981" : "#64748b", background: isVisible ? "rgba(16,185,129,0.12)" : "rgba(100,116,139,0.12)", padding: "2px 8px", borderRadius: 99 }}>{STATUS_LABEL[page.status]}</span>
               {page.isSystem && <span style={{ fontSize: 10, fontWeight: 700, color: "#f59e0b", background: "rgba(245,158,11,0.1)", padding: "2px 8px", borderRadius: 99 }}>Hệ thống</span>}
             </div>
           </div>
@@ -111,7 +93,7 @@ function PagePreviewModal({ page, onClose, onEdit, onToggle }: {
             {[
               { label: "Slug", value: page.slug, icon: <Hash size={13} />, mono: true, color: "#60a5fa" },
               { label: "Cập nhật", value: page.updatedAt, icon: <Clock size={13} />, color: "#94a3b8" },
-              { label: "Số từ", value: `~${page.wordCount.toLocaleString("vi-VN")}`, icon: <FileText size={13} />, color: "#94a3b8" },
+              { label: "Số từ", value: `~${(page.wordCount ?? 0).toLocaleString("vi-VN")}`, icon: <FileText size={13} />, color: "#94a3b8" },
             ].map(row => (
               <div key={row.label} style={{ background: "rgba(255,255,255,0.025)", borderRadius: 10, padding: "12px 14px", border: "1px solid rgba(30,42,80,0.5)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#475569", fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{row.icon}{row.label}</div>
@@ -123,7 +105,7 @@ function PagePreviewModal({ page, onClose, onEdit, onToggle }: {
           <div style={{ background: "rgba(255,255,255,0.025)", borderRadius: 12, padding: "14px 16px", border: "1px solid rgba(30,42,80,0.5)" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 8 }}>Nội dung (preview)</div>
             <div style={{ fontFamily: "monospace", fontSize: 12, color: "#475569", background: "rgba(0,0,0,0.3)", borderRadius: 8, padding: "10px 12px", lineHeight: 1.6 }}>
-              {page.content.length > 120 ? page.content.slice(0, 120) + "..." : page.content}
+              {(page.content ?? "").length > 120 ? page.content!.slice(0, 120) + "..." : page.content}
             </div>
           </div>
         </div>
@@ -141,10 +123,10 @@ function PagePreviewModal({ page, onClose, onEdit, onToggle }: {
   );
 }
 
-/* ─── Page Form Modal ────────────────────────────────────────── */
+/* ─── Page Form Modal ────────────────────────────────────────────── */
 function PageFormModal({ page, onSave, onClose }: {
   page?: StaticPage;
-  onSave: (data: Partial<StaticPage> & { id?: string }) => void;
+  onSave: (data: { id?: string; title: string; slug: string; description: string; content: string; status: PageStatus }) => void;
   onClose: () => void;
 }) {
   const isEdit = !!page;
@@ -152,7 +134,7 @@ function PageFormModal({ page, onSave, onClose }: {
   const [slug, setSlug]             = useState(page?.slug ?? "/");
   const [description, setDesc]      = useState(page?.description ?? "");
   const [content, setContent]       = useState(page?.content ?? "");
-  const [status, setStatus]         = useState<PageStatus>(page?.status ?? "Hiển thị");
+  const [status, setStatus]         = useState<PageStatus>(page?.status ?? "HienThi");
   const [errors, setErrors]         = useState<Record<string, string>>({});
 
   const color = getColor(slug);
@@ -175,9 +157,6 @@ function PageFormModal({ page, onSave, onClose }: {
       description: description.trim(),
       content: content.trim(),
       status,
-      updatedAt: new Date().toISOString().slice(0, 10),
-      wordCount: content.trim().split(/\s+/).filter(Boolean).length,
-      isSystem: page?.isSystem ?? false,
     });
     onClose();
   };
@@ -210,9 +189,9 @@ function PageFormModal({ page, onSave, onClose }: {
             <div>
               <label style={labelStyle}>Trạng thái</label>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {(["Hiển thị", "Ẩn"] as PageStatus[]).map(s => (
-                  <button key={s} onClick={() => setStatus(s)} style={{ padding: "8px 0", borderRadius: 7, fontSize: 12, fontWeight: status === s ? 700 : 400, border: "1px solid", borderColor: status === s ? (s === "Hiển thị" ? "#10b981" : "#ef4444") : "rgba(30,42,80,0.8)", background: status === s ? (s === "Hiển thị" ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.1)") : "transparent", color: status === s ? (s === "Hiển thị" ? "#34d399" : "#f87171") : "#64748b", cursor: "pointer" }}>
-                    {s}
+                {(["HienThi", "An"] as PageStatus[]).map(s => (
+                  <button key={s} onClick={() => setStatus(s)} style={{ padding: "8px 0", borderRadius: 7, fontSize: 12, fontWeight: status === s ? 700 : 400, border: "1px solid", borderColor: status === s ? (s === "HienThi" ? "#10b981" : "#ef4444") : "rgba(30,42,80,0.8)", background: status === s ? (s === "HienThi" ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.1)") : "transparent", color: status === s ? (s === "HienThi" ? "#34d399" : "#f87171") : "#64748b", cursor: "pointer" }}>
+                    {STATUS_LABEL[s]}
                   </button>
                 ))}
               </div>
@@ -250,7 +229,7 @@ function PageFormModal({ page, onSave, onClose }: {
   );
 }
 
-/* ─── Delete Modal ───────────────────────────────────────────── */
+/* ─── Delete Modal ───────────────────────────────────────────────── */
 function DeleteModal({ page, onConfirm, onClose }: { page: StaticPage; onConfirm: () => void; onClose: () => void }) {
   return (
     <Modal onClose={onClose}>
@@ -272,39 +251,72 @@ function DeleteModal({ page, onConfirm, onClose }: { page: StaticPage; onConfirm
   );
 }
 
-/* ─── Main Page ──────────────────────────────────────────────── */
+/* ─── Main Page ──────────────────────────────────────────────────── */
 export default function PagesPage() {
-  const [pages, setPages]       = useState<StaticPage[]>(INITIAL_PAGES);
+  const [pages, setPages]       = useState<StaticPage[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [search, setSearch]     = useState("");
   const [viewing, setViewing]   = useState<StaticPage | null>(null);
   const [editing, setEditing]   = useState<StaticPage | null>(null);
   const [deleting, setDeleting] = useState<StaticPage | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const filtered = pages.filter(p =>
-    !search || [p.title, p.slug, p.description].some(s => s.toLowerCase().includes(search.toLowerCase()))
-  );
-
-  const visibleCount = pages.filter(p => p.status === "Hiển thị").length;
-  const hiddenCount  = pages.filter(p => p.status === "Ẩn").length;
-  const totalWords   = pages.reduce((s, p) => s + p.wordCount, 0);
-
-  const handleSave = useCallback((data: Partial<StaticPage> & { id?: string }) => {
-    if (data.id) {
-      setPages(prev => prev.map(p => p.id === data.id ? { ...p, ...data } : p));
-    } else {
-      setPages(prev => [...prev, { id: `pg-${Date.now()}`, ...data } as StaticPage]);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      const data = await pagesApi.list();
+      setPages(data);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const handleDelete = useCallback((id: string) => {
-    setPages(prev => prev.filter(p => p.id !== id));
-  }, []);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleToggle = useCallback((id: string) => {
-    setPages(prev => prev.map(p => p.id === id ? { ...p, status: p.status === "Hiển thị" ? "Ẩn" : "Hiển thị" } : p));
-    setViewing(prev => prev?.id === id ? { ...prev, status: prev.status === "Hiển thị" ? "Ẩn" : "Hiển thị" } : prev);
-  }, []);
+  const filtered = pages.filter(p =>
+    !search || [p.title, p.slug, p.description ?? ""].some(s => s.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const visibleCount = pages.filter(p => p.status === "HienThi").length;
+  const hiddenCount  = pages.filter(p => p.status === "An").length;
+  const totalWords   = pages.reduce((s, p) => s + (p.wordCount ?? 0), 0);
+
+  const handleSave = useCallback(async (data: { id?: string; title: string; slug: string; description: string; content: string; status: PageStatus }) => {
+    try {
+      if (data.id) {
+        await pagesApi.update(data.id, data);
+      } else {
+        await pagesApi.create(data);
+      }
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await pagesApi.delete(id);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Không thể xóa trang hệ thống");
+    }
+  }, [fetchData]);
+
+  const handleToggle = useCallback(async (page: StaticPage) => {
+    try {
+      const newStatus: PageStatus = page.status === "HienThi" ? "An" : "HienThi";
+      await pagesApi.update(page.id, { status: newStatus });
+      await fetchData();
+      setViewing(prev => prev?.id === page.id ? { ...prev, status: newStatus } : prev);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
   return (
     <AdminLayout title="Trang" subtitle="Quản lý trang tĩnh website">
@@ -316,6 +328,12 @@ export default function PagesPage() {
           <StatCard label="Đang ẩn" value={hiddenCount} changeLabel="so với tháng trước" icon="activity" color="amber" />
           <StatCard label="Tổng số từ" value={totalWords} suffix=" từ" changeLabel="so với tháng trước" icon="activity" color="purple" />
         </StatsGrid>
+
+        {apiError && (
+          <div style={{ padding: "12px 16px", borderRadius: 10, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171", fontSize: 13 }}>
+            {apiError}
+          </div>
+        )}
 
         {/* Toolbar */}
         <div className="glass-card" style={{ padding: 16 }}>
@@ -329,68 +347,74 @@ export default function PagesPage() {
         </div>
 
         {/* Pages list */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {filtered.map(page => {
-            const color = getColor(page.slug);
-            const isVisible = page.status === "Hiển thị";
-            return (
-              <div
-                key={page.id}
-                className="glass-card"
-                style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", cursor: "pointer", borderLeft: `3px solid ${color}`, transition: "all 0.15s" }}
-                onClick={() => setViewing(page)}
-              >
-                {/* Icon */}
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: `${color}12`, border: `1px solid ${color}20`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  {getIcon(page.slug)}
-                </div>
+        {loading ? (
+          <div className="glass-card" style={{ padding: "60px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+            <span style={{ display: "inline-block", width: 20, height: 20, border: "2px solid #334155", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {filtered.map(page => {
+              const color = getColor(page.slug);
+              const isVisible = page.status === "HienThi";
+              return (
+                <div
+                  key={page.id}
+                  className="glass-card"
+                  style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", cursor: "pointer", borderLeft: `3px solid ${color}`, transition: "all 0.15s" }}
+                  onClick={() => setViewing(page)}
+                >
+                  {/* Icon */}
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: `${color}12`, border: `1px solid ${color}20`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    {getIcon(page.slug)}
+                  </div>
 
-                {/* Title + slug */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>{page.title}</span>
-                    {page.isSystem && (
-                      <span style={{ fontSize: 9, fontWeight: 700, color: "#f59e0b", background: "rgba(245,158,11,0.1)", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>HỆ THỐNG</span>
+                  {/* Title + slug */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0" }}>{page.title}</span>
+                      {page.isSystem && (
+                        <span style={{ fontSize: 9, fontWeight: 700, color: "#f59e0b", background: "rgba(245,158,11,0.1)", padding: "1px 6px", borderRadius: 99, flexShrink: 0 }}>HỆ THỐNG</span>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                      <span style={{ fontFamily: "monospace", fontSize: 11, color: "#3b82f6", display: "flex", alignItems: "center", gap: 4 }}>
+                        <ExternalLink size={9} />{page.slug}
+                      </span>
+                      <span style={{ fontSize: 11, color: "#334155" }}>{(page.description ?? "").slice(0, 60)}{(page.description ?? "").length > 60 ? "..." : ""}</span>
+                    </div>
+                  </div>
+
+                  {/* Meta */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: isVisible ? "#10b981" : "#64748b", background: isVisible ? "rgba(16,185,129,0.12)" : "rgba(100,116,139,0.12)", padding: "2px 8px", borderRadius: 99 }}>
+                      {STATUS_LABEL[page.status]}
+                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 10, color: "#334155" }}>~{page.wordCount ?? 0} từ</span>
+                      <span style={{ fontSize: 10, color: "#334155" }}>{page.updatedAt}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ display: "flex", gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                    <button onClick={() => setViewing(page)} title="Xem" style={{ width: 30, height: 30, borderRadius: 7, border: "1px solid rgba(30,42,80,0.8)", background: "transparent", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Eye size={13} /></button>
+                    <button onClick={() => setEditing(page)} title="Sửa" style={{ width: 30, height: 30, borderRadius: 7, border: "1px solid rgba(30,42,80,0.8)", background: "transparent", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Pencil size={13} /></button>
+                    {!page.isSystem && (
+                      <button onClick={() => setDeleting(page)} title="Xóa" style={{ width: 30, height: 30, borderRadius: 7, border: "1px solid rgba(239,68,68,0.2)", background: "transparent", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Trash2 size={13} /></button>
                     )}
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                    <span style={{ fontFamily: "monospace", fontSize: 11, color: "#3b82f6", display: "flex", alignItems: "center", gap: 4 }}>
-                      <ExternalLink size={9} />{page.slug}
-                    </span>
-                    <span style={{ fontSize: 11, color: "#334155" }}>{page.description.slice(0, 60)}{page.description.length > 60 ? "..." : ""}</span>
-                  </div>
                 </div>
+              );
+            })}
 
-                {/* Meta */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: isVisible ? "#10b981" : "#64748b", background: isVisible ? "rgba(16,185,129,0.12)" : "rgba(100,116,139,0.12)", padding: "2px 8px", borderRadius: 99 }}>
-                    {page.status}
-                  </span>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 10, color: "#334155" }}>~{page.wordCount} từ</span>
-                    <span style={{ fontSize: 10, color: "#334155" }}>{page.updatedAt}</span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div style={{ display: "flex", gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                  <button onClick={() => setViewing(page)} title="Xem" style={{ width: 30, height: 30, borderRadius: 7, border: "1px solid rgba(30,42,80,0.8)", background: "transparent", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Eye size={13} /></button>
-                  <button onClick={() => setEditing(page)} title="Sửa" style={{ width: 30, height: 30, borderRadius: 7, border: "1px solid rgba(30,42,80,0.8)", background: "transparent", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Pencil size={13} /></button>
-                  {!page.isSystem && (
-                    <button onClick={() => setDeleting(page)} title="Xóa" style={{ width: 30, height: 30, borderRadius: 7, border: "1px solid rgba(239,68,68,0.2)", background: "transparent", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Trash2 size={13} /></button>
-                  )}
-                </div>
+            {filtered.length === 0 && !loading && (
+              <div className="glass-card" style={{ padding: "50px 20px", textAlign: "center" }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>📄</div>
+                <div style={{ color: "#475569", fontSize: 13 }}>Không tìm thấy trang nào</div>
               </div>
-            );
-          })}
-
-          {filtered.length === 0 && (
-            <div className="glass-card" style={{ padding: "50px 20px", textAlign: "center" }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>📄</div>
-              <div style={{ color: "#475569", fontSize: 13 }}>Không tìm thấy trang nào</div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div style={{ fontSize: 12, color: "#334155" }}>
           {filtered.length} / {pages.length} trang · Trang đánh dấu <span style={{ color: "#f59e0b", fontWeight: 600 }}>HỆ THỐNG</span> không thể xóa
@@ -404,7 +428,7 @@ export default function PagesPage() {
         <PagePreviewModal
           page={viewing} onClose={() => setViewing(null)}
           onEdit={() => { setEditing(viewing); setViewing(null); }}
-          onToggle={() => handleToggle(viewing.id)}
+          onToggle={() => handleToggle(viewing)}
         />
       )}
       {deleting && <DeleteModal page={deleting} onConfirm={() => handleDelete(deleting.id)} onClose={() => setDeleting(null)} />}

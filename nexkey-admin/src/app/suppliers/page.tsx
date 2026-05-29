@@ -5,7 +5,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatCard, StatsGrid } from "@/components/ui/StatCard";
 import { SupplierStatusBadge } from "@/components/ui/Badge";
 import { Button, ActionButtons } from "@/components/ui/Button";
-import { suppliers as initialSuppliers } from "@/lib/mock-data";
+import { suppliersApi } from "@/lib/api";
 import { formatVND } from "@/lib/utils";
 import type { Supplier, SupplierStatus } from "@/lib/types";
 import {
@@ -170,7 +170,7 @@ function SupplierDetailModal({ supplier, idx, onClose, onEdit, onToggleStatus }:
 /* ─── Supplier Edit Modal ────────────────────────────────────── */
 function SupplierEditModal({ supplier, onSave, onClose }: {
   supplier: Supplier;
-  onSave: (id: string, data: Partial<Supplier>) => void;
+  onSave: (id: string, data: Partial<Supplier>) => Promise<void>;
   onClose: () => void;
 }) {
   const [companyName, setCompanyName]       = useState(supplier.companyName);
@@ -226,7 +226,7 @@ function SupplierEditModal({ supplier, onSave, onClose }: {
         </div>
         <div style={{ padding: "0 20px 20px", display: "flex", gap: 10 }}>
           <Button variant="secondary" size="sm" onClick={onClose} style={{ flex: 1 }}>Hủy</Button>
-          <Button variant="primary" size="sm" style={{ flex: 1 }} onClick={() => { onSave(supplier.id, { companyName, taxCode, contactPerson, email, phone, status }); onClose(); }}>Lưu thay đổi</Button>
+          <Button variant="primary" size="sm" style={{ flex: 1 }} onClick={() => onSave(supplier.id, { companyName, taxCode, contactPerson, email, phone, status })}>Lưu thay đổi</Button>
         </div>
       </div>
     </Modal>
@@ -234,7 +234,7 @@ function SupplierEditModal({ supplier, onSave, onClose }: {
 }
 
 /* ─── Create Supplier Modal ──────────────────────────────────── */
-function CreateSupplierModal({ onCreate, onClose }: { onCreate: (s: Supplier) => void; onClose: () => void }) {
+function CreateSupplierModal({ onCreate, onClose }: { onCreate: (body: Record<string, unknown>) => Promise<void>; onClose: () => void }) {
   const [companyName, setCompanyName]     = useState("");
   const [taxCode, setTaxCode]             = useState("");
   const [contactPerson, setContactPerson] = useState("");
@@ -256,11 +256,10 @@ function CreateSupplierModal({ onCreate, onClose }: { onCreate: (s: Supplier) =>
     return e;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
-    onCreate({ id: `s-${Date.now()}`, companyName: companyName.trim(), taxCode: taxCode.trim(), contactPerson: contactPerson.trim(), email: email.trim(), phone: phone.trim(), suppliedProducts: 0, debt: 0, status, createdAt: new Date().toISOString() });
-    onClose();
+    await onCreate({ companyName: companyName.trim(), taxCode: taxCode.trim(), contactPerson: contactPerson.trim(), email: email.trim(), phone: phone.trim(), status });
   };
 
   const field = (key: string, label: string, value: string, setValue: (v: string) => void, props?: React.InputHTMLAttributes<HTMLInputElement>) => (
@@ -324,7 +323,7 @@ function CreateSupplierModal({ onCreate, onClose }: { onCreate: (s: Supplier) =>
 }
 
 /* ─── Delete Confirm Modal ───────────────────────────────────── */
-function DeleteModal({ supplier, onConfirm, onClose }: { supplier: Supplier; onConfirm: () => void; onClose: () => void }) {
+function DeleteModal({ supplier, onConfirm, onClose }: { supplier: Supplier; onConfirm: () => Promise<void>; onClose: () => void }) {
   return (
     <Modal onClose={onClose}>
       <div style={{ width: 360, maxWidth: "90vw", background: "#0d1226", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 16, overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
@@ -337,7 +336,7 @@ function DeleteModal({ supplier, onConfirm, onClose }: { supplier: Supplier; onC
         </div>
         <div style={{ padding: "0 24px 24px", display: "flex", gap: 10 }}>
           <Button variant="secondary" size="sm" onClick={onClose} style={{ flex: 1 }}>Hủy</Button>
-          <Button variant="danger" size="sm" onClick={() => { onConfirm(); onClose(); }} style={{ flex: 1 }}>Xóa</Button>
+          <Button variant="danger" size="sm" onClick={async () => { await onConfirm(); onClose(); }} style={{ flex: 1 }}>Xóa</Button>
         </div>
       </div>
     </Modal>
@@ -388,19 +387,35 @@ function PagBtn({ children, onClick, disabled = false, active = false }: { child
 
 /* ─── Main Page ──────────────────────────────────────────────── */
 export default function SuppliersPage() {
-  const [suppliers, setSuppliers] = useState([...initialSuppliers]);
-  const [activeTab, setActiveTab] = useState("Tất cả");
-  const [search, setSearch]       = useState("");
-  const [page, setPage]           = useState(1);
-  const [viewing, setViewing]     = useState<{ s: Supplier; idx: number } | null>(null);
-  const [editing, setEditing]     = useState<Supplier | null>(null);
-  const [deleting, setDeleting]   = useState<Supplier | null>(null);
-  const [creating, setCreating]   = useState(false);
+  const [suppliers, setSuppliers]   = useState<Supplier[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [apiError, setApiError]     = useState<string | null>(null);
+  const [activeTab, setActiveTab]   = useState("Tất cả");
+  const [search, setSearch]         = useState("");
+  const [page, setPage]             = useState(1);
+  const [viewing, setViewing]       = useState<{ s: Supplier; idx: number } | null>(null);
+  const [editing, setEditing]       = useState<Supplier | null>(null);
+  const [deleting, setDeleting]     = useState<Supplier | null>(null);
+  const [creating, setCreating]     = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const [filterPos, setFilterPos]   = useState({ top: 0, right: 0 });
   const [filters, setFilters]       = useState<Filters>(DEFAULT_FILTERS);
   const filterRef    = useRef<HTMLDivElement>(null);
   const filterBtnRef = useRef<HTMLButtonElement>(null);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await suppliersApi.list();
+      setSuppliers(data);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -433,24 +448,59 @@ export default function SuppliersPage() {
   const count      = (s: string) => s === "Tất cả" ? suppliers.length : suppliers.filter(sup => sup.status === s).length;
   const totalDebt  = suppliers.reduce((acc, s) => acc + s.debt, 0);
 
-  const handleSaveEdit = useCallback((id: string, data: Partial<Supplier>) => {
-    setSuppliers(prev => prev.map(s => s.id === id ? { ...s, ...data } : s));
-  }, []);
+  const handleSaveEdit = useCallback(async (id: string, data: Partial<Supplier>) => {
+    try {
+      await suppliersApi.update(id, data as Record<string, unknown>);
+      await fetchData();
+      setEditing(null);
+      setViewing(null);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
-  const handleDelete = useCallback((id: string) => {
-    setSuppliers(prev => prev.filter(s => s.id !== id));
-    setViewing(null);
-  }, []);
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await suppliersApi.delete(id);
+      await fetchData();
+      setViewing(null);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
-  const handleToggleStatus = useCallback((supplier: Supplier) => {
+  const handleToggleStatus = useCallback(async (supplier: Supplier) => {
     const newStatus: SupplierStatus = supplier.status === "Tạm ngưng" ? "Đang hợp tác" : "Tạm ngưng";
-    setSuppliers(prev => prev.map(s => s.id === supplier.id ? { ...s, status: newStatus } : s));
-    setViewing(prev => prev ? { ...prev, s: { ...prev.s, status: newStatus } } : null);
-  }, []);
+    try {
+      await suppliersApi.update(supplier.id, { status: newStatus });
+      await fetchData();
+      setViewing(null);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
+
+  const handleCreate = useCallback(async (body: Record<string, unknown>) => {
+    try {
+      await suppliersApi.create(body);
+      await fetchData();
+      setCreating(false);
+      setPage(1);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
   return (
     <AdminLayout title="Nhà cung cấp" subtitle="Quản lý nhà cung cấp">
       <div className="page-content">
+
+        {apiError && (
+          <div style={{ padding: "12px 16px", borderRadius: 10, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span>{apiError}</span>
+            <button onClick={() => setApiError(null)} style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", padding: 4 }}><X size={14} /></button>
+          </div>
+        )}
 
         <StatsGrid cols={4}>
           <StatCard label="Tổng NCC" value={suppliers.length} change={5} changeLabel="so với tháng trước" icon="building" color="blue" />
@@ -487,55 +537,64 @@ export default function SuppliersPage() {
 
         {/* Table */}
         <div className="glass-card" style={{ overflowX: "auto" }}>
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Công ty</th><th>Mã số thuế</th><th>Người liên hệ</th>
-                <th>Email</th><th>Điện thoại</th><th>SP cung cấp</th>
-                <th>Công nợ</th><th>Trạng thái</th><th>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageItems.map(supplier => {
-                const idx = initialSuppliers.findIndex(s => s.id === supplier.id);
-                return (
-                  <tr key={supplier.id} onClick={() => setViewing({ s: supplier, idx })} style={{ cursor: "pointer" }}>
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 10, background: AVATAR_COLORS[idx % AVATAR_COLORS.length], display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 12, flexShrink: 0 }}>
-                          {supplier.companyName.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: "#e2e8f0", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{supplier.companyName}</div>
-                      </div>
-                    </td>
-                    <td><span style={{ fontFamily: "monospace", color: "#64748b", fontSize: 11 }}>{supplier.taxCode}</span></td>
-                    <td><span style={{ fontSize: 12, color: "#94a3b8" }}>{supplier.contactPerson}</span></td>
-                    <td><span style={{ fontSize: 11, color: "#64748b" }}>{supplier.email}</span></td>
-                    <td><span style={{ fontSize: 12, color: "#94a3b8" }}>{supplier.phone}</span></td>
-                    <td><span style={{ fontWeight: 600, color: "#e2e8f0", fontSize: 13 }}>{supplier.suppliedProducts}</span></td>
-                    <td>
-                      <span style={{ fontWeight: 600, fontSize: 12, color: supplier.debt > 0 ? "#f87171" : "#34d399" }}>
-                        {supplier.debt > 0 ? formatVND(supplier.debt) : "Không có"}
-                      </span>
-                    </td>
-                    <td><SupplierStatusBadge status={supplier.status} /></td>
-                    <td onClick={e => e.stopPropagation()}>
-                      <ActionButtons
-                        onView={() => setViewing({ s: supplier, idx })}
-                        onEdit={() => setEditing(supplier)}
-                        onDelete={() => setDeleting(supplier)}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {filtered.length === 0 && (
-            <div className="empty-state">
-              <span style={{ fontSize: 36 }}>🏢</span>
-              <div style={{ color: "#475569", fontSize: 13 }}>Không tìm thấy nhà cung cấp</div>
+          {loading ? (
+            <div style={{ textAlign: "center", padding: 60, color: "#475569" }}>
+              <span style={{ display: "inline-block", width: 24, height: 24, border: "2px solid #334155", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
             </div>
+          ) : (
+            <>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Công ty</th><th>Mã số thuế</th><th>Người liên hệ</th>
+                    <th>Email</th><th>Điện thoại</th><th>SP cung cấp</th>
+                    <th>Công nợ</th><th>Trạng thái</th><th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pageItems.map((supplier, listIdx) => {
+                    const idx = suppliers.findIndex(s => s.id === supplier.id);
+                    const avatarIdx = idx >= 0 ? idx : listIdx;
+                    return (
+                      <tr key={supplier.id} onClick={() => setViewing({ s: supplier, idx: avatarIdx })} style={{ cursor: "pointer" }}>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: 10, background: AVATAR_COLORS[avatarIdx % AVATAR_COLORS.length], display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 12, flexShrink: 0 }}>
+                              {supplier.companyName.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: "#e2e8f0", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{supplier.companyName}</div>
+                          </div>
+                        </td>
+                        <td><span style={{ fontFamily: "monospace", color: "#64748b", fontSize: 11 }}>{supplier.taxCode}</span></td>
+                        <td><span style={{ fontSize: 12, color: "#94a3b8" }}>{supplier.contactPerson}</span></td>
+                        <td><span style={{ fontSize: 11, color: "#64748b" }}>{supplier.email}</span></td>
+                        <td><span style={{ fontSize: 12, color: "#94a3b8" }}>{supplier.phone}</span></td>
+                        <td><span style={{ fontWeight: 600, color: "#e2e8f0", fontSize: 13 }}>{supplier.suppliedProducts}</span></td>
+                        <td>
+                          <span style={{ fontWeight: 600, fontSize: 12, color: supplier.debt > 0 ? "#f87171" : "#34d399" }}>
+                            {supplier.debt > 0 ? formatVND(supplier.debt) : "Không có"}
+                          </span>
+                        </td>
+                        <td><SupplierStatusBadge status={supplier.status} /></td>
+                        <td onClick={e => e.stopPropagation()}>
+                          <ActionButtons
+                            onView={() => setViewing({ s: supplier, idx: avatarIdx })}
+                            onEdit={() => setEditing(supplier)}
+                            onDelete={() => setDeleting(supplier)}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {filtered.length === 0 && (
+                <div className="empty-state">
+                  <span style={{ fontSize: 36 }}>🏢</span>
+                  <div style={{ color: "#475569", fontSize: 13 }}>Không tìm thấy nhà cung cấp</div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -562,7 +621,7 @@ export default function SuppliersPage() {
       )}
 
       {/* Modals */}
-      {creating && <CreateSupplierModal onCreate={s => { setSuppliers(prev => [s, ...prev]); setPage(1); }} onClose={() => setCreating(false)} />}
+      {creating && <CreateSupplierModal onCreate={handleCreate} onClose={() => setCreating(false)} />}
       {viewing && (
         <SupplierDetailModal
           supplier={viewing.s} idx={viewing.idx}

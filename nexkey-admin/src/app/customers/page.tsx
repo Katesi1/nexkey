@@ -5,7 +5,8 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatCard, StatsGrid } from "@/components/ui/StatCard";
 import { CustomerStatusBadge } from "@/components/ui/Badge";
 import { Button, ActionButtons } from "@/components/ui/Button";
-import { customers as initialCustomers } from "@/lib/mock-data";
+import { customersApi } from "@/lib/api";
+import type { ApiMeta } from "@/lib/api";
 import { formatVND, formatDate } from "@/lib/utils";
 import type { Customer, CustomerStatus } from "@/lib/types";
 import {
@@ -346,7 +347,10 @@ function PagBtn({ children, onClick, disabled = false, active = false }: { child
 
 /* ─── Main Page ──────────────────────────────────────────────── */
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState([...initialCustomers]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [meta, setMeta]           = useState<ApiMeta>({ total: 0, page: 1, limit: PAGE_SIZE, totalPages: 1 });
+  const [loading, setLoading]     = useState(false);
+  const [apiError, setApiError]   = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("Tất cả");
   const [search, setSearch]       = useState("");
   const [page, setPage]           = useState(1);
@@ -359,6 +363,32 @@ export default function CustomersPage() {
   const [filters, setFilters]       = useState<Filters>(DEFAULT_FILTERS);
   const filterRef    = useRef<HTMLDivElement>(null);
   const filterBtnRef = useRef<HTMLButtonElement>(null);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      const statusParam = activeTab !== "Tất cả" ? activeTab : undefined;
+      const minSpend = filters.minSpend ? Number(filters.minSpend.replace(/\./g, "")) : undefined;
+      const maxSpend = filters.maxSpend ? Number(filters.maxSpend.replace(/\./g, "")) : undefined;
+      const result = await customersApi.list({
+        page,
+        limit: PAGE_SIZE,
+        search: search || undefined,
+        status: statusParam,
+        min_spending: minSpend,
+        max_spending: maxSpend,
+      });
+      setCustomers(result.data);
+      setMeta(result.meta);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, activeTab, filters]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -378,46 +408,51 @@ export default function CustomersPage() {
 
   const activeFilterCount = filters.statuses.length + (filters.minSpend ? 1 : 0) + (filters.maxSpend ? 1 : 0);
 
-  const filtered = customers.filter(c => {
-    const tabOk    = activeTab === "Tất cả" || c.status === activeTab;
-    const searchOk = !search || [c.fullName, c.email, c.phone].some(s => s.toLowerCase().includes(search.toLowerCase()));
-    const statusOk = filters.statuses.length === 0 || filters.statuses.includes(c.status);
-    const minOk    = !filters.minSpend || c.totalSpending >= Number(filters.minSpend.replace(/\./g, ""));
-    const maxOk    = !filters.maxSpend || c.totalSpending <= Number(filters.maxSpend.replace(/\./g, ""));
-    return tabOk && searchOk && statusOk && minOk && maxOk;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const count      = (s: string) => s === "Tất cả" ? customers.length : customers.filter(c => c.status === s).length;
+  const totalPages = meta.totalPages;
+  const pageItems  = customers;
   const totalSpending = customers.reduce((s, c) => s + c.totalSpending, 0);
 
   const handleTabChange = (tab: string) => { setActiveTab(tab); setPage(1); };
   const handleSearch    = (s: string)   => { setSearch(s); setPage(1); };
 
-  const handleSaveEdit = useCallback((id: string, data: Partial<Customer>) => {
-    setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...data } : c));
-  }, []);
+  const handleSaveEdit = useCallback(async (id: string, data: Partial<Customer>) => {
+    try {
+      await customersApi.update(id, data as Record<string, unknown>);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
-  const handleDelete = useCallback((id: string) => {
-    setCustomers(prev => prev.filter(c => c.id !== id));
-    setViewing(null);
-  }, []);
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await customersApi.delete(id);
+      setViewing(null);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
-  const handleToggleLock = useCallback((customer: Customer) => {
-    const newStatus: CustomerStatus = customer.status === "Bị khóa" ? "Hoạt động" : "Bị khóa";
-    setCustomers(prev => prev.map(c => c.id === customer.id ? { ...c, status: newStatus } : c));
-    setViewing(prev => prev ? { ...prev, c: { ...prev.c, status: newStatus } } : null);
-  }, []);
+  const handleToggleLock = useCallback(async (customer: Customer) => {
+    const locked = customer.status !== "Bị khóa";
+    try {
+      await customersApi.lock(customer.id, locked);
+      setViewing(null);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
   return (
     <AdminLayout title="Khách hàng" subtitle="Quản lý khách hàng">
       <div className="page-content">
 
         <StatsGrid cols={4}>
-          <StatCard label="Tổng khách hàng" value={customers.length} change={8.5} changeLabel="so với tháng trước" icon="users" color="blue" />
+          <StatCard label="Tổng khách hàng" value={meta.total} change={8.5} changeLabel="so với tháng trước" icon="users" color="blue" />
           <StatCard label="Khách hàng mới" value={156} change={12} changeLabel="so với tháng trước" icon="users" color="green" />
-          <StatCard label="Khách VIP" value={count("VIP")} change={2} changeLabel="so với tháng trước" icon="star" color="amber" />
+          <StatCard label="Khách VIP" value={customers.filter(c => c.status === "VIP").length} change={2} changeLabel="so với tháng trước" icon="star" color="amber" />
           <StatCard label="Tổng chi tiêu" value={totalSpending} isCurrency change={6.2} changeLabel="so với tháng trước" icon="money" color="purple" />
         </StatsGrid>
 
@@ -434,7 +469,7 @@ export default function CustomersPage() {
                 {activeFilterCount > 0 && <span style={{ background: "#3b82f6", color: "#fff", borderRadius: 99, fontSize: 10, fontWeight: 700, padding: "1px 6px", lineHeight: 1.6 }}>{activeFilterCount}</span>}
               </button>
             </div>
-            <Button variant="secondary" size="sm" icon={<Download size={13} />}>Excel</Button>
+            <Button variant="secondary" size="sm" icon={<Download size={13} />} onClick={() => window.open(customersApi.exportUrl(), "_blank")}>Excel</Button>
             <Button variant="primary" size="sm" icon={<UserPlus size={13} />} onClick={() => setCreating(true)}>Thêm KH</Button>
           </div>
 
@@ -442,7 +477,9 @@ export default function CustomersPage() {
             {TABS.map(tab => (
               <button key={tab} onClick={() => handleTabChange(tab)} className={`tab-btn ${activeTab === tab ? "tab-btn-active" : "tab-btn-inactive"}`}>
                 {tab}
-                <span className={`tab-count ${activeTab === tab ? "tab-count-active" : "tab-count-inactive"}`}>{count(tab)}</span>
+                <span className={`tab-count ${activeTab === tab ? "tab-count-active" : "tab-count-inactive"}`}>
+                  {tab === "Tất cả" ? meta.total : customers.filter(c => c.status === tab).length}
+                </span>
               </button>
             ))}
           </div>
@@ -459,54 +496,58 @@ export default function CustomersPage() {
               </tr>
             </thead>
             <tbody>
-              {pageItems.map((customer, i) => {
-                const realIdx = initialCustomers.findIndex(c => c.id === customer.id);
-                return (
-                  <tr key={customer.id} onClick={() => setViewing({ c: customer, idx: realIdx })} style={{ cursor: "pointer" }}>
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ width: 34, height: 34, borderRadius: "50%", background: AVATAR_COLORS[realIdx % AVATAR_COLORS.length], display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
-                          {customer.fullName[0]}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 12.5, fontWeight: 500, color: "#e2e8f0", display: "flex", alignItems: "center", gap: 5 }}>
-                            {customer.fullName}
-                            {customer.status === "VIP" && <Crown size={11} style={{ color: "#f59e0b" }} />}
-                          </div>
-                          <div style={{ fontSize: 10, color: "#334155" }}>#{customer.id}</div>
-                        </div>
+              {loading ? (
+                <tr><td colSpan={8} style={{ textAlign: "center", padding: 40, color: "#475569" }}>
+                  <span style={{ display: "inline-block", width: 20, height: 20, border: "2px solid #334155", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                </td></tr>
+              ) : pageItems.map((customer, i) => (
+                <tr key={customer.id} onClick={() => setViewing({ c: customer, idx: i })} style={{ cursor: "pointer" }}>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 34, height: 34, borderRadius: "50%", background: AVATAR_COLORS[i % AVATAR_COLORS.length], display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+                        {customer.fullName[0]}
                       </div>
-                    </td>
-                    <td><span style={{ fontSize: 12, color: "#64748b" }}>{customer.email}</span></td>
-                    <td><span style={{ fontSize: 12, color: "#64748b" }}>{customer.phone}</span></td>
-                    <td><span style={{ fontWeight: 600, color: "#e2e8f0", fontSize: 13 }}>{customer.totalOrders}</span></td>
-                    <td><span style={{ fontWeight: 700, color: "#34d399", fontSize: 13 }}>{formatVND(customer.totalSpending)}</span></td>
-                    <td><span style={{ fontSize: 11, color: "#475569" }}>{formatDate(customer.joinedAt)}</span></td>
-                    <td><CustomerStatusBadge status={customer.status} /></td>
-                    <td onClick={e => e.stopPropagation()}>
-                      <ActionButtons
-                        onView={() => setViewing({ c: customer, idx: realIdx })}
-                        onEdit={() => setEditing(customer)}
-                        onDelete={() => setDeleting(customer)}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
+                      <div>
+                        <div style={{ fontSize: 12.5, fontWeight: 500, color: "#e2e8f0", display: "flex", alignItems: "center", gap: 5 }}>
+                          {customer.fullName}
+                          {customer.status === "VIP" && <Crown size={11} style={{ color: "#f59e0b" }} />}
+                        </div>
+                        <div style={{ fontSize: 10, color: "#334155" }}>#{customer.id}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span style={{ fontSize: 12, color: "#64748b" }}>{customer.email}</span></td>
+                  <td><span style={{ fontSize: 12, color: "#64748b" }}>{customer.phone}</span></td>
+                  <td><span style={{ fontWeight: 600, color: "#e2e8f0", fontSize: 13 }}>{customer.totalOrders}</span></td>
+                  <td><span style={{ fontWeight: 700, color: "#34d399", fontSize: 13 }}>{formatVND(customer.totalSpending)}</span></td>
+                  <td><span style={{ fontSize: 11, color: "#475569" }}>{formatDate(customer.joinedAt)}</span></td>
+                  <td><CustomerStatusBadge status={customer.status} /></td>
+                  <td onClick={e => e.stopPropagation()}>
+                    <ActionButtons
+                      onView={() => setViewing({ c: customer, idx: i })}
+                      onEdit={() => setEditing(customer)}
+                      onDelete={() => setDeleting(customer)}
+                    />
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
-          {filtered.length === 0 && (
+          {!loading && customers.length === 0 && (
             <div className="empty-state">
               <span style={{ fontSize: 36 }}>👤</span>
               <div style={{ color: "#475569", fontSize: 13 }}>Không tìm thấy khách hàng</div>
             </div>
+          )}
+          {apiError && (
+            <div style={{ textAlign: "center", padding: 16, color: "#ef4444", fontSize: 12 }}>{apiError}</div>
           )}
         </div>
 
         {/* Pagination */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 12, color: "#475569" }}>
-            {filtered.length === 0 ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)}`} / {filtered.length} khách hàng
+            {meta.total === 0 ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, meta.total)}`} / {meta.total} khách hàng
           </span>
           <div style={{ display: "flex", gap: 4 }}>
             <PagBtn onClick={() => setPage(p => p - 1)} disabled={page === 1}><ChevronLeft size={14} /></PagBtn>
@@ -526,7 +567,20 @@ export default function CustomersPage() {
       )}
 
       {/* Modals */}
-      {creating && <CreateCustomerModal onCreate={c => { setCustomers(prev => [c, ...prev]); setPage(1); }} onClose={() => setCreating(false)} />}
+      {creating && (
+        <CreateCustomerModal
+          onCreate={async c => {
+            try {
+              await customersApi.create(c as unknown as Record<string, unknown>);
+              setPage(1);
+              await fetchData();
+            } catch (err) {
+              setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+            }
+          }}
+          onClose={() => setCreating(false)}
+        />
+      )}
       {viewing && (
         <CustomerDetailModal
           customer={viewing.c} idx={viewing.idx}

@@ -162,6 +162,115 @@ export type Activity = {
   description: string;
   createdAt: string;
   meta?: Record<string, string>;
+  isRead?: boolean;
+  adminName?: string;
+};
+
+// - Article Types -
+
+export type ArticleStatus = "DaXuatBan" | "Nhap" | "DaLenLich";
+export type ArticleCategory = "Hướng dẫn" | "Tin tức" | "Khuyến mãi" | "Cập nhật" | "Bảo mật";
+
+export type Article = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  content?: string;
+  category: ArticleCategory;
+  status: ArticleStatus;
+  author: string;
+  thumbnail?: string;
+  tags: string[];
+  views: number;
+  publishedAt?: string;
+  scheduledAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// - Static Page Types -
+
+export type PageStatus = "HienThi" | "An";
+
+export type StaticPage = {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string;
+  content?: string;
+  status: PageStatus;
+  isSystem: boolean;
+  wordCount?: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// - FAQ Types -
+
+export type FaqStatus = "HienThi" | "An";
+export type FaqCategory = "Sản phẩm" | "Thanh toán" | "Key & Kích hoạt" | "Bảo hành" | "Khác";
+
+export type FaqItem = {
+  id: string;
+  question: string;
+  answer: string;
+  category: FaqCategory;
+  status: FaqStatus;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// - Admin & Role Types -
+
+export type AdminStatus = "HoatDong" | "BiKhoa";
+
+export type Admin = {
+  id: string;
+  name: string;
+  email: string;
+  roleId: string;
+  roleName: string;
+  status: AdminStatus;
+  lastLogin?: string;
+  createdAt: string;
+};
+
+export type Role = {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  permissions: string[];
+  isSystem: boolean;
+  adminCount: number;
+  createdAt: string;
+};
+
+export type AdminInfo = {
+  id: string;
+  name: string;
+  email: string;
+  status: AdminStatus;
+  role: {
+    id: string;
+    name: string;
+    color: string;
+    permissions: string[];
+  };
+};
+
+// - Payment Gateway Types -
+
+export type PaymentGateway = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  testMode: boolean;
+  merchantId?: string;
+  webhookUrl?: string;
+  updatedAt: string;
 };
 
 // - Dashboard Types -

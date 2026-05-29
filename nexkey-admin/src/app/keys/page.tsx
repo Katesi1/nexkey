@@ -5,9 +5,10 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatCard, StatsGrid } from "@/components/ui/StatCard";
 import { KeyStatusBadge } from "@/components/ui/Badge";
 import { Button, ActionButtons } from "@/components/ui/Button";
-import { licenseKeys as initialKeys } from "@/lib/mock-data";
+import { keysApi, productsApi } from "@/lib/api";
+import type { ApiMeta } from "@/lib/api";
 import { formatDate, maskKey } from "@/lib/utils";
-import type { LicenseKey, KeyStatus } from "@/lib/types";
+import type { LicenseKey, KeyStatus, Product } from "@/lib/types";
 import {
   Search, Filter, Download, Plus, Copy, Zap, X,
   KeyRound, User, Package, Calendar, Eye, EyeOff,
@@ -226,9 +227,9 @@ function KeyEditModal({ licKey, onSave, onClose }: {
 }
 
 /* ─── Create Key Modal ───────────────────────────────────────── */
-function CreateKeyModal({ onCreate, onClose }: { onCreate: (k: LicenseKey) => void; onClose: () => void }) {
+function CreateKeyModal({ onCreate, onClose, products }: { onCreate: (body: Record<string, unknown>) => void; onClose: () => void; products: Product[] }) {
   const [keyVal, setKeyVal]       = useState(genKey());
-  const [productName, setProduct] = useState("");
+  const [productId, setProductId] = useState(products[0]?.id ?? "");
   const [status, setStatus]       = useState<KeyStatus>("Chưa kích hoạt");
   const [expires, setExpires]     = useState("");
   const [errors, setErrors]       = useState<Record<string, string>>({});
@@ -239,14 +240,14 @@ function CreateKeyModal({ onCreate, onClose }: { onCreate: (k: LicenseKey) => vo
   const validate = () => {
     const e: Record<string, string> = {};
     if (!keyVal.trim()) e.key = "Bắt buộc";
-    if (!productName.trim()) e.product = "Bắt buộc";
+    if (!productId) e.product = "Bắt buộc";
     return e;
   };
 
   const handleSubmit = () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
-    onCreate({ id: `k-${Date.now()}`, key: keyVal.trim().toUpperCase(), productId: `p-new`, productName: productName.trim(), status, expiresAt: expires ? new Date(expires).toISOString() : undefined, createdAt: new Date().toISOString() });
+    onCreate({ key: keyVal.trim().toUpperCase(), productId, status, expiresAt: expires ? new Date(expires).toISOString() : undefined });
     onClose();
   };
 
@@ -273,8 +274,11 @@ function CreateKeyModal({ onCreate, onClose }: { onCreate: (k: LicenseKey) => vo
             {errors.key && <span style={{ fontSize: 11, color: "#ef4444", marginTop: 4, display: "block" }}>{errors.key}</span>}
           </div>
           <div>
-            <label style={labelStyle}>Tên sản phẩm <span style={{ color: "#ef4444" }}>*</span></label>
-            <input style={{ ...inputStyle, borderColor: errors.product ? "#ef4444" : "rgba(30,42,80,0.9)" }} value={productName} onChange={e => setProduct(e.target.value)} placeholder="Windows 11 Pro" />
+            <label style={labelStyle}>Sản phẩm <span style={{ color: "#ef4444" }}>*</span></label>
+            <select style={{ ...inputStyle, cursor: "pointer", borderColor: errors.product ? "#ef4444" : "rgba(30,42,80,0.9)" }} value={productId} onChange={e => setProductId(e.target.value)}>
+              <option value="">-- Chọn sản phẩm --</option>
+              {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
             {errors.product && <span style={{ fontSize: 11, color: "#ef4444", marginTop: 4, display: "block" }}>{errors.product}</span>}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -300,9 +304,9 @@ function CreateKeyModal({ onCreate, onClose }: { onCreate: (k: LicenseKey) => vo
 }
 
 /* ─── Bulk Generate Modal ────────────────────────────────────── */
-function BulkGenerateModal({ onCreate, onClose }: { onCreate: (keys: LicenseKey[]) => void; onClose: () => void }) {
+function BulkGenerateModal({ onCreate, onClose, products }: { onCreate: (body: Record<string, unknown>) => void; onClose: () => void; products: Product[] }) {
   const [prefix, setPrefix]       = useState("NEXK");
-  const [productName, setProduct] = useState("");
+  const [productId, setProductId] = useState(products[0]?.id ?? "");
   const [quantity, setQuantity]   = useState("5");
   const [status, setStatus]       = useState<KeyStatus>("Chưa kích hoạt");
   const [expires, setExpires]     = useState("");
@@ -314,23 +318,14 @@ function BulkGenerateModal({ onCreate, onClose }: { onCreate: (keys: LicenseKey[
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!productName.trim()) e.product = "Bắt buộc";
+    if (!productId) e.product = "Bắt buộc";
     return e;
   };
 
   const handleSubmit = () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
-    const keys: LicenseKey[] = Array.from({ length: qty }, (_, i) => ({
-      id: `k-bulk-${Date.now()}-${i}`,
-      key: genKey(prefix.trim().toUpperCase() || "NEXK"),
-      productId: "p-bulk",
-      productName: productName.trim(),
-      status,
-      expiresAt: expires ? new Date(expires).toISOString() : undefined,
-      createdAt: new Date().toISOString(),
-    }));
-    onCreate(keys);
+    onCreate({ productId, quantity: qty, prefix: prefix.trim().toUpperCase() || "NEXK", status, expiresAt: expires ? new Date(expires).toISOString() : undefined });
     onClose();
   };
 
@@ -347,8 +342,11 @@ function BulkGenerateModal({ onCreate, onClose }: { onCreate: (keys: LicenseKey[
         </div>
         <div style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
-            <label style={labelStyle}>Tên sản phẩm <span style={{ color: "#ef4444" }}>*</span></label>
-            <input style={{ ...inputStyle, borderColor: errors.product ? "#ef4444" : "rgba(30,42,80,0.9)" }} value={productName} onChange={e => setProduct(e.target.value)} placeholder="Windows 11 Pro" />
+            <label style={labelStyle}>Sản phẩm <span style={{ color: "#ef4444" }}>*</span></label>
+            <select style={{ ...inputStyle, cursor: "pointer", borderColor: errors.product ? "#ef4444" : "rgba(30,42,80,0.9)" }} value={productId} onChange={e => setProductId(e.target.value)}>
+              <option value="">-- Chọn sản phẩm --</option>
+              {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
             {errors.product && <span style={{ fontSize: 11, color: "#ef4444", marginTop: 4, display: "block" }}>{errors.product}</span>}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -445,7 +443,11 @@ function PagBtn({ children, onClick, disabled = false, active = false }: { child
 
 /* ─── Main Page ──────────────────────────────────────────────── */
 export default function KeysPage() {
-  const [keys, setKeys]           = useState([...initialKeys]);
+  const [keys, setKeys]           = useState<LicenseKey[]>([]);
+  const [meta, setMeta]           = useState<ApiMeta>({ total: 0, page: 1, limit: PAGE_SIZE, totalPages: 1 });
+  const [loading, setLoading]     = useState(false);
+  const [apiError, setApiError]   = useState<string | null>(null);
+  const [products, setProducts]   = useState<Product[]>([]);
   const [activeTab, setActiveTab] = useState("Tất cả");
   const [search, setSearch]       = useState("");
   const [page, setPage]           = useState(1);
@@ -460,6 +462,32 @@ export default function KeysPage() {
   const [filters, setFilters]       = useState<Filters>(DEFAULT_FILTERS);
   const filterRef    = useRef<HTMLDivElement>(null);
   const filterBtnRef = useRef<HTMLButtonElement>(null);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      const statusParam = activeTab !== "Tất cả" ? activeTab : undefined;
+      const result = await keysApi.list({
+        page,
+        limit: PAGE_SIZE,
+        search: search || undefined,
+        status: statusParam,
+      });
+      setKeys(result.data);
+      setMeta(result.meta);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, activeTab]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  useEffect(() => {
+    productsApi.list({ limit: 100 }).then(r => setProducts(r.data)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -479,31 +507,38 @@ export default function KeysPage() {
 
   const activeFilterCount = filters.statuses.length;
 
-  const filtered = keys.filter(k => {
-    const tabOk    = activeTab === "Tất cả" || k.status === activeTab;
-    const searchOk = !search || [k.key, k.productName, k.customerName ?? ""].some(s => s.toLowerCase().includes(search.toLowerCase()));
-    const statusOk = filters.statuses.length === 0 || filters.statuses.includes(k.status);
-    return tabOk && searchOk && statusOk;
-  });
+  const totalPages = meta.totalPages;
+  const pageItems  = keys;
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const count      = (s: string) => s === "Tất cả" ? keys.length : keys.filter(k => k.status === s).length;
+  const handleSaveEdit = useCallback(async (id: string, data: Partial<LicenseKey>) => {
+    try {
+      await keysApi.update(id, data as Record<string, unknown>);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
-  const handleSaveEdit = useCallback((id: string, data: Partial<LicenseKey>) => {
-    setKeys(prev => prev.map(k => k.id === id ? { ...k, ...data } : k));
-  }, []);
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await keysApi.delete(id);
+      setViewing(null);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
-  const handleDelete = useCallback((id: string) => {
-    setKeys(prev => prev.filter(k => k.id !== id));
-    setViewing(null);
-  }, []);
-
-  const handleToggleLock = useCallback((k: LicenseKey) => {
-    const newStatus: KeyStatus = k.status === "Bị khóa" ? "Hoạt động" : "Bị khóa";
-    setKeys(prev => prev.map(key => key.id === k.id ? { ...key, status: newStatus } : key));
-    setViewing(prev => prev?.id === k.id ? { ...prev, status: newStatus } : prev);
-  }, []);
+  const handleToggleLock = useCallback(async (k: LicenseKey) => {
+    const locked = k.status !== "Bị khóa";
+    try {
+      await keysApi.lock(k.id, locked);
+      setViewing(null);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
   const handleCopyInline = (key: string, id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -517,12 +552,15 @@ export default function KeysPage() {
       <div className="page-content">
 
         <StatsGrid cols={5}>
-          <StatCard label="Tổng key" value={keys.length} change={8} changeLabel="so với tháng trước" icon="key" color="blue" />
-          <StatCard label="Hoạt động" value={count("Hoạt động")} change={5} changeLabel="so với tháng trước" icon="key" color="green" />
-          <StatCard label="Sắp hết hạn" value={count("Sắp hết hạn")} changeLabel="so với tháng trước" icon="alert" color="amber" />
-          <StatCard label="Đã hết hạn" value={count("Đã hết hạn")} change={-2} changeLabel="so với tháng trước" icon="key" color="rose" />
-          <StatCard label="Bị khóa" value={count("Bị khóa")} changeLabel="so với tháng trước" icon="key" color="purple" />
+          <StatCard label="Tổng key" value={meta.total} change={8} changeLabel="so với tháng trước" icon="key" color="blue" />
+          <StatCard label="Hoạt động" value={keys.filter(k => k.status === "Hoạt động").length} change={5} changeLabel="so với tháng trước" icon="key" color="green" />
+          <StatCard label="Sắp hết hạn" value={keys.filter(k => k.status === "Sắp hết hạn").length} changeLabel="so với tháng trước" icon="alert" color="amber" />
+          <StatCard label="Đã hết hạn" value={keys.filter(k => k.status === "Đã hết hạn").length} change={-2} changeLabel="so với tháng trước" icon="key" color="rose" />
+          <StatCard label="Bị khóa" value={keys.filter(k => k.status === "Bị khóa").length} changeLabel="so với tháng trước" icon="key" color="purple" />
         </StatsGrid>
+        {apiError && (
+          <div style={{ textAlign: "center", padding: 16, color: "#ef4444", fontSize: 12 }}>{apiError}</div>
+        )}
 
         {/* Toolbar + Tabs */}
         <div className="glass-card" style={{ padding: 16 }}>
@@ -546,7 +584,9 @@ export default function KeysPage() {
             {KEY_TABS.map(tab => (
               <button key={tab} onClick={() => { setActiveTab(tab); setPage(1); }} className={`tab-btn ${activeTab === tab ? "tab-btn-active" : "tab-btn-inactive"}`}>
                 {tab}
-                <span className={`tab-count ${activeTab === tab ? "tab-count-active" : "tab-count-inactive"}`}>{count(tab)}</span>
+                <span className={`tab-count ${activeTab === tab ? "tab-count-active" : "tab-count-inactive"}`}>
+                  {tab === "Tất cả" ? meta.total : keys.filter(k => k.status === tab).length}
+                </span>
               </button>
             ))}
           </div>
@@ -563,7 +603,11 @@ export default function KeysPage() {
               </tr>
             </thead>
             <tbody>
-              {pageItems.map(k => (
+              {loading ? (
+                <tr><td colSpan={8} style={{ textAlign: "center", padding: 40, color: "#475569" }}>
+                  <span style={{ display: "inline-block", width: 20, height: 20, border: "2px solid #334155", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                </td></tr>
+              ) : pageItems.map(k => (
                 <tr key={k.id} onClick={() => setViewing(k)} style={{ cursor: "pointer" }}>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -600,7 +644,7 @@ export default function KeysPage() {
               ))}
             </tbody>
           </table>
-          {filtered.length === 0 && (
+          {!loading && keys.length === 0 && (
             <div className="empty-state">
               <KeyRound size={36} style={{ color: "#1e3a5f" }} />
               <div style={{ color: "#475569", fontSize: 13 }}>Không tìm thấy key nào</div>
@@ -611,7 +655,7 @@ export default function KeysPage() {
         {/* Pagination */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 12, color: "#475569" }}>
-            {filtered.length === 0 ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)}`} / {filtered.length} keys
+            {meta.total === 0 ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, meta.total)}`} / {meta.total} keys
           </span>
           <div style={{ display: "flex", gap: 4 }}>
             <PagBtn onClick={() => setPage(p => p - 1)} disabled={page === 1}><ChevronLeft size={14} /></PagBtn>
@@ -631,8 +675,36 @@ export default function KeysPage() {
       )}
 
       {/* Modals */}
-      {creating && <CreateKeyModal onCreate={k => { setKeys(prev => [k, ...prev]); setPage(1); }} onClose={() => setCreating(false)} />}
-      {bulking && <BulkGenerateModal onCreate={newKeys => { setKeys(prev => [...newKeys, ...prev]); setPage(1); }} onClose={() => setBulking(false)} />}
+      {creating && (
+        <CreateKeyModal
+          products={products}
+          onCreate={async body => {
+            try {
+              await keysApi.create(body);
+              setPage(1);
+              await fetchData();
+            } catch (err) {
+              setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+            }
+          }}
+          onClose={() => setCreating(false)}
+        />
+      )}
+      {bulking && (
+        <BulkGenerateModal
+          products={products}
+          onCreate={async body => {
+            try {
+              await keysApi.createBulk(body);
+              setPage(1);
+              await fetchData();
+            } catch (err) {
+              setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+            }
+          }}
+          onClose={() => setBulking(false)}
+        />
+      )}
       {viewing && (
         <KeyDetailModal
           licKey={viewing} onClose={() => setViewing(null)}

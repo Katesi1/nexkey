@@ -1,14 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Eye, EyeOff, KeyRound, LogIn, ShieldCheck, AlertCircle } from "lucide-react";
-
-const ADMIN_EMAIL    = "admin@nexkey.vn";
-const ADMIN_PASSWORD = "nexkey2024";
+import { useAuth } from "@/store/AuthContext";
 
 export default function LoginPage() {
-  const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw]     = useState(false);
@@ -25,14 +22,12 @@ export default function LoginPage() {
     }
 
     setLoading(true);
-    // Simulate network delay
-    await new Promise(r => setTimeout(r, 800));
-
-    if (email.trim() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      router.push("/dashboard");
-    } else {
+    try {
+      await login(email.trim(), password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Email hoặc mật khẩu không đúng.");
+    } finally {
       setLoading(false);
-      setError("Email hoặc mật khẩu không đúng. Vui lòng thử lại.");
     }
   };
 
@@ -52,7 +47,6 @@ export default function LoginPage() {
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
         <div style={{ position: "absolute", top: "-20%", left: "-10%", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 70%)" }} />
         <div style={{ position: "absolute", bottom: "-20%", right: "-10%", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%)" }} />
-        {/* Grid pattern */}
         <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(30,42,80,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(30,42,80,0.15) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
       </div>
 

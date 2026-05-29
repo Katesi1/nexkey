@@ -5,7 +5,8 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatCard, StatsGrid } from "@/components/ui/StatCard";
 import { StockStatusBadge } from "@/components/ui/Badge";
 import { Button, ActionButtons } from "@/components/ui/Button";
-import { warehouseItems as initialItems } from "@/lib/mock-data";
+import { warehouseApi } from "@/lib/api";
+import type { ApiMeta } from "@/lib/api";
 import { formatVND } from "@/lib/utils";
 import type { WarehouseItem, StockStatus } from "@/lib/types";
 import {
@@ -362,7 +363,11 @@ function PagBtn({ children, onClick, disabled = false, active = false }: { child
 
 /* ─── Main Page ──────────────────────────────────────────────── */
 export default function WarehousePage() {
-  const [items, setItems]         = useState([...initialItems]);
+  const [items, setItems]         = useState<WarehouseItem[]>([]);
+  const [meta, setMeta]           = useState<ApiMeta>({ total: 0, page: 1, limit: PAGE_SIZE, totalPages: 1 });
+  const [loading, setLoading]     = useState(false);
+  const [apiError, setApiError]   = useState<string | null>(null);
+  const [summary, setSummary]     = useState<{ totalValue: number; totalQuantity: number } | null>(null);
   const [activeTab, setActiveTab] = useState("Tất cả");
   const [search, setSearch]       = useState("");
   const [page, setPage]           = useState(1);
@@ -374,6 +379,34 @@ export default function WarehousePage() {
   const [filters, setFilters]       = useState<Filters>(DEFAULT_FILTERS);
   const filterRef    = useRef<HTMLDivElement>(null);
   const filterBtnRef = useRef<HTMLButtonElement>(null);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      const warehouseParam = activeTab !== "Tất cả" ? activeTab : undefined;
+      const statusParam = filters.statuses.length === 1 ? filters.statuses[0] : undefined;
+      const [result, summaryData] = await Promise.all([
+        warehouseApi.list({
+          page,
+          limit: PAGE_SIZE,
+          search: search || undefined,
+          warehouse: warehouseParam,
+          status: statusParam,
+        }),
+        warehouseApi.summary(),
+      ]);
+      setItems(result.data);
+      setMeta(result.meta);
+      setSummary(summaryData);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, activeTab, filters]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -393,35 +426,26 @@ export default function WarehousePage() {
 
   const activeFilterCount = filters.statuses.length;
 
-  const filtered = items.filter(item => {
-    const tabOk    = activeTab === "Tất cả" || item.warehouse === activeTab;
-    const searchOk = !search || [item.productName, item.sku].some(s => s.toLowerCase().includes(search.toLowerCase()));
-    const statusOk = filters.statuses.length === 0 || filters.statuses.includes(item.status);
-    return tabOk && searchOk && statusOk;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const count      = (w: string) => w === "Tất cả" ? items.length : items.filter(i => i.warehouse === w).length;
-  const totalValue = items.reduce((s, i) => s + i.inventoryValue, 0);
-  const totalQty   = items.reduce((s, i) => s + i.quantity, 0);
+  const totalPages = meta.totalPages;
+  const pageItems  = items;
+  const totalValue = summary?.totalValue ?? items.reduce((s, i) => s + i.inventoryValue, 0);
+  const totalQty   = summary?.totalQuantity ?? items.reduce((s, i) => s + i.quantity, 0);
   const lowStock   = items.filter(i => i.status === "Sắp hết").length;
   const outOfStock = items.filter(i => i.status === "Hết hàng").length;
 
-  const handleAdjust = useCallback((id: string, delta: number, costPrice?: number) => {
-    setItems(prev => prev.map(item => {
-      if (item.id !== id) return item;
-      const newQty = Math.max(0, item.quantity + delta);
-      const newCost = costPrice ?? item.costPrice;
-      return { ...item, quantity: newQty, costPrice: newCost, inventoryValue: newCost * newQty, status: autoStatus(newQty), updatedAt: new Date().toISOString() };
-    }));
-    setViewing(prev => {
-      if (!prev || prev.id !== id) return prev;
-      const newQty = Math.max(0, prev.quantity + delta);
-      const newCost = costPrice ?? prev.costPrice;
-      return { ...prev, quantity: newQty, costPrice: newCost, inventoryValue: newCost * newQty, status: autoStatus(newQty) };
-    });
-  }, []);
+  const handleAdjust = useCallback(async (id: string, delta: number, costPrice?: number) => {
+    try {
+      if (delta > 0 && costPrice !== undefined) {
+        await warehouseApi.import(id, delta, costPrice);
+      } else if (delta < 0) {
+        await warehouseApi.exportItem(id, Math.abs(delta));
+      }
+      setViewing(null);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
   return (
     <AdminLayout title="Kho hàng" subtitle="Quản lý tồn kho">
@@ -434,6 +458,9 @@ export default function WarehousePage() {
           <StatCard label="Hết hàng" value={outOfStock} change={2} changeLabel="so với tháng trước" icon="alert" color="rose" />
           <StatCard label="Đang nhập" value={items.filter(i => i.status === "Đang nhập").length} changeLabel="so với tháng trước" icon="warehouse" color="cyan" />
         </StatsGrid>
+        {apiError && (
+          <div style={{ textAlign: "center", padding: 16, color: "#ef4444", fontSize: 12 }}>{apiError}</div>
+        )}
 
         {/* Toolbar + Tabs */}
         <div className="glass-card" style={{ padding: 16 }}>
@@ -456,7 +483,9 @@ export default function WarehousePage() {
             {WAREHOUSES.map(wh => (
               <button key={wh} onClick={() => { setActiveTab(wh); setPage(1); }} className={`tab-btn ${activeTab === wh ? "tab-btn-active" : "tab-btn-inactive"}`}>
                 {wh}
-                <span className={`tab-count ${activeTab === wh ? "tab-count-active" : "tab-count-inactive"}`}>{count(wh)}</span>
+                <span className={`tab-count ${activeTab === wh ? "tab-count-active" : "tab-count-inactive"}`}>
+                  {wh === "Tất cả" ? meta.total : items.filter(i => i.warehouse === wh).length}
+                </span>
               </button>
             ))}
           </div>
@@ -472,7 +501,11 @@ export default function WarehousePage() {
               </tr>
             </thead>
             <tbody>
-              {pageItems.map(item => (
+              {loading ? (
+                <tr><td colSpan={9} style={{ textAlign: "center", padding: 40, color: "#475569" }}>
+                  <span style={{ display: "inline-block", width: 20, height: 20, border: "2px solid #334155", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                </td></tr>
+              ) : pageItems.map(item => (
                 <tr key={item.id} onClick={() => setViewing(item)} style={{ cursor: "pointer" }}>
                   <td><div style={{ fontSize: 13, fontWeight: 500, color: "#e2e8f0" }}>{item.productName}</div></td>
                   <td><span style={{ fontFamily: "monospace", color: "#64748b", fontSize: 11 }}>{item.sku}</span></td>
@@ -503,7 +536,7 @@ export default function WarehousePage() {
               ))}
             </tbody>
           </table>
-          {filtered.length === 0 && (
+          {!loading && items.length === 0 && (
             <div className="empty-state">
               <span style={{ fontSize: 36 }}>📦</span>
               <div style={{ color: "#475569", fontSize: 13 }}>Không có dữ liệu kho</div>
@@ -514,7 +547,7 @@ export default function WarehousePage() {
         {/* Pagination + total */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 12, color: "#475569" }}>
-            {filtered.length === 0 ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)}`} / {filtered.length} mục ·{" "}
+            {meta.total === 0 ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, meta.total)}`} / {meta.total} mục ·{" "}
             Tổng giá trị: <span style={{ color: "#60a5fa", fontWeight: 700 }}>{formatVND(totalValue)}</span>
           </span>
           <div style={{ display: "flex", gap: 4 }}>
@@ -535,7 +568,20 @@ export default function WarehousePage() {
       )}
 
       {/* Modals */}
-      {importing && <ImportNewModal onCreate={item => { setItems(prev => [item, ...prev]); setPage(1); }} onClose={() => setImporting(false)} />}
+      {importing && (
+        <ImportNewModal
+          onCreate={async item => {
+            try {
+              await warehouseApi.create(item);
+              setPage(1);
+              await fetchData();
+            } catch (err) {
+              setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+            }
+          }}
+          onClose={() => setImporting(false)}
+        />
+      )}
       {viewing && (
         <WarehouseDetailModal
           item={viewing} onClose={() => setViewing(null)}

@@ -4,12 +4,15 @@ import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/Button";
 import {
-  User, Mail, Phone, Shield, Clock, Key,
+  User, Mail, Shield, Clock, Key,
   Save, Eye, EyeOff, CheckCircle, AlertCircle, X,
   Camera, Lock,
 } from "lucide-react";
+import { useAuth } from "@/store/AuthContext";
+import { auth, logsApi } from "@/lib/api";
+import { formatDateTime } from "@/lib/utils";
+import type { Activity } from "@/lib/types";
 
-/* ─── Toast ──────────────────────────────────────────────────── */
 function Toast({ msg, ok, onClose }: { msg: string; ok: boolean; onClose: () => void }) {
   useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
   return (
@@ -37,49 +40,47 @@ const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", bo
 const labelStyle: React.CSSProperties = { display: "block", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 };
 
 export default function ProfilePage() {
-  const [name, setName]   = useState("Admin Nexkey");
-  const [email, setEmail] = useState("admin@nexkey.vn");
-  const [phone, setPhone] = useState("0901 000 001");
-  const [bio, setBio]     = useState("Quản trị viên hệ thống NexKey. Chịu trách nhiệm quản lý toàn bộ hoạt động của nền tảng.");
+  const { user } = useAuth();
 
   const [curPw, setCurPw]   = useState("");
   const [newPw, setNewPw]   = useState("");
   const [confPw, setConfPw] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [pwErr, setPwErr]   = useState("");
+  const [savingPw, setSavingPw] = useState(false);
 
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const showToast = (msg: string, ok = true) => setToast({ msg, ok });
 
-  const savedProfile = { name: "Admin Nexkey", email: "admin@nexkey.vn", phone: "0901 000 001", bio };
-  const isDirty = name !== savedProfile.name || email !== savedProfile.email || phone !== savedProfile.phone;
+  useEffect(() => {
+    logsApi.list({ limit: 5 }).then(({ data }) => setActivities(data)).catch(() => {});
+  }, []);
 
-  const handleSaveProfile = () => {
-    if (!name.trim()) { showToast("Tên không được để trống", false); return; }
-    showToast("Đã lưu thông tin cá nhân");
-  };
-
-  const handleChangePw = () => {
+  const handleChangePw = async () => {
     setPwErr("");
     if (!curPw) { setPwErr("Nhập mật khẩu hiện tại"); return; }
     if (newPw.length < 8) { setPwErr("Mật khẩu mới tối thiểu 8 ký tự"); return; }
     if (newPw !== confPw) { setPwErr("Mật khẩu xác nhận không khớp"); return; }
-    setCurPw(""); setNewPw(""); setConfPw("");
-    showToast("Đã đổi mật khẩu thành công");
+    setSavingPw(true);
+    try {
+      await auth.changePassword(curPw, newPw);
+      setCurPw(""); setNewPw(""); setConfPw("");
+      showToast("Đã đổi mật khẩu thành công");
+    } catch (err) {
+      setPwErr(err instanceof Error ? err.message : "Đổi mật khẩu thất bại");
+    } finally {
+      setSavingPw(false);
+    }
   };
 
-  const ACTIVITY_LOG = [
-    { action: "Đăng nhập", detail: "IP: 192.168.1.1 · Chrome/Windows", time: "27/05/2024 10:32" },
-    { action: "Lưu cài đặt", detail: "Thay đổi cấu hình email SMTP", time: "27/05/2024 09:15" },
-    { action: "Xóa đơn hàng", detail: "Đã xóa ORD-Y1Z3A5", time: "26/05/2024 17:00" },
-    { action: "Đăng nhập", detail: "IP: 192.168.1.1 · Chrome/Windows", time: "26/05/2024 08:00" },
-    { action: "Tạo key hàng loạt", detail: "Tạo 10 key Windows 11 Pro", time: "25/05/2024 14:30" },
-  ];
+  const name = user?.name ?? "Admin";
+  const email = user?.email ?? "";
+  const roleName = user?.role?.name ?? "Admin";
 
   return (
     <AdminLayout title="Hồ sơ cá nhân" subtitle="Thông tin tài khoản quản trị viên">
       <div className="page-content">
-
         <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 20, alignItems: "start" }}>
 
           {/* Left — Avatar card */}
@@ -96,19 +97,17 @@ export default function ProfilePage() {
               <div style={{ fontSize: 16, fontWeight: 700, color: "#f1f5f9", marginBottom: 4 }}>{name}</div>
               <div style={{ fontSize: 12, color: "#475569", marginBottom: 12 }}>{email}</div>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: "#f59e0b", background: "rgba(245,158,11,0.12)", padding: "3px 12px", borderRadius: 99 }}>
-                <Shield size={11} />Super Admin
+                <Shield size={11} />{roleName}
               </span>
             </div>
 
-            {/* Quick info */}
             <div className="glass-card" style={{ padding: 18 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 14 }}>Thông tin</div>
               {[
-                { icon: <Mail size={13} />, label: "Email", value: email },
-                { icon: <Phone size={13} />, label: "Điện thoại", value: phone || "—" },
-                { icon: <Shield size={13} />, label: "Vai trò", value: "Super Admin" },
-                { icon: <Clock size={13} />, label: "Tham gia", value: "01/01/2024" },
-                { icon: <Key size={13} />, label: "Đăng nhập cuối", value: "27/05/2024 10:32" },
+                { icon: <Mail size={13} />,   label: "Email",        value: email },
+                { icon: <Shield size={13} />, label: "Vai trò",      value: roleName },
+                { icon: <Clock size={13} />,  label: "Trạng thái",   value: user?.status === "HoatDong" ? "Hoạt động" : "Bị khóa" },
+                { icon: <Key size={13} />,    label: "ID",           value: user?.id ? user.id.slice(0, 8) + "..." : "—" },
               ].map(row => (
                 <div key={row.label} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
                   <div style={{ color: "#334155", marginTop: 1, flexShrink: 0 }}>{row.icon}</div>
@@ -124,41 +123,35 @@ export default function ProfilePage() {
           {/* Right — Forms */}
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-            {/* Profile info */}
-            <SectionCard title="Thông tin cá nhân" description="Cập nhật tên hiển thị và thông tin liên hệ">
+            {/* Profile info (read-only, from auth) */}
+            <SectionCard title="Thông tin cá nhân" description="Thông tin tài khoản quản trị viên">
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
                   <div>
                     <label style={labelStyle}>Họ tên</label>
                     <div style={{ position: "relative" }}>
                       <User size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#475569", pointerEvents: "none" }} />
-                      <input style={{ ...inputStyle, paddingLeft: 30 }} value={name} onChange={e => setName(e.target.value)} />
+                      <input style={{ ...inputStyle, paddingLeft: 30, opacity: 0.7 }} value={name} readOnly />
                     </div>
                   </div>
                   <div>
                     <label style={labelStyle}>Email</label>
                     <div style={{ position: "relative" }}>
                       <Mail size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#475569", pointerEvents: "none" }} />
-                      <input style={{ ...inputStyle, paddingLeft: 30 }} value={email} onChange={e => setEmail(e.target.value)} />
+                      <input style={{ ...inputStyle, paddingLeft: 30, opacity: 0.7 }} value={email} readOnly />
                     </div>
                   </div>
                   <div>
-                    <label style={labelStyle}>Điện thoại</label>
+                    <label style={labelStyle}>Vai trò</label>
                     <div style={{ position: "relative" }}>
-                      <Phone size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#475569", pointerEvents: "none" }} />
-                      <input style={{ ...inputStyle, paddingLeft: 30 }} value={phone} onChange={e => setPhone(e.target.value)} placeholder="0901 234 567" />
+                      <Shield size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#475569", pointerEvents: "none" }} />
+                      <input style={{ ...inputStyle, paddingLeft: 30, opacity: 0.7 }} value={roleName} readOnly />
                     </div>
                   </div>
                 </div>
-                <div>
-                  <label style={labelStyle}>Giới thiệu</label>
-                  <textarea style={{ ...inputStyle, minHeight: 80, resize: "vertical" }} value={bio} onChange={e => setBio(e.target.value)} />
-                </div>
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <Button variant="primary" size="sm" icon={<Save size={13} />} onClick={handleSaveProfile} disabled={!isDirty}>
-                    Lưu thay đổi
-                  </Button>
-                </div>
+                <p style={{ fontSize: 11, color: "#334155" }}>
+                  Để thay đổi tên hoặc email, vui lòng liên hệ Super Admin.
+                </p>
               </div>
             </SectionCard>
 
@@ -182,23 +175,25 @@ export default function ProfilePage() {
                   </div>
                 ))}
                 {pwErr && <div style={{ fontSize: 12, color: "#f87171", display: "flex", alignItems: "center", gap: 6 }}><AlertCircle size={13} />{pwErr}</div>}
-                <Button variant="primary" size="sm" icon={<Lock size={13} />} style={{ alignSelf: "flex-start" }} onClick={handleChangePw}>
-                  Cập nhật mật khẩu
+                <Button variant="primary" size="sm" icon={<Lock size={13} />} style={{ alignSelf: "flex-start" }} onClick={handleChangePw} disabled={savingPw}>
+                  {savingPw ? "Đang lưu..." : "Cập nhật mật khẩu"}
                 </Button>
               </div>
             </SectionCard>
 
             {/* Activity log */}
-            <SectionCard title="Lịch sử hoạt động gần đây" description="5 hoạt động gần nhất của tài khoản">
+            <SectionCard title="Hoạt động gần đây" description="5 hoạt động mới nhất trong hệ thống">
               <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-                {ACTIVITY_LOG.map((log, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "10px 0", borderBottom: i < ACTIVITY_LOG.length - 1 ? "1px solid rgba(30,42,80,0.4)" : "none" }}>
+                {activities.length === 0 ? (
+                  <div style={{ fontSize: 12, color: "#334155", textAlign: "center", padding: "12px 0" }}>Chưa có dữ liệu</div>
+                ) : activities.map((log, i) => (
+                  <div key={log.id} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "10px 0", borderBottom: i < activities.length - 1 ? "1px solid rgba(30,42,80,0.4)" : "none" }}>
                     <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#3b82f6", flexShrink: 0, marginTop: 5, boxShadow: "0 0 6px rgba(59,130,246,0.5)" }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: "#cbd5e1" }}>{log.action}</div>
-                      <div style={{ fontSize: 11, color: "#475569", marginTop: 1 }}>{log.detail}</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#cbd5e1" }}>{log.title}</div>
+                      <div style={{ fontSize: 11, color: "#475569", marginTop: 1 }}>{log.description}</div>
                     </div>
-                    <div style={{ fontSize: 10, color: "#334155", flexShrink: 0 }}>{log.time}</div>
+                    <div style={{ fontSize: 10, color: "#334155", flexShrink: 0 }}>{formatDateTime(log.createdAt)}</div>
                   </div>
                 ))}
               </div>

@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatCard, StatsGrid } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/Button";
+import { adminsApi, rolesApi } from "@/lib/api";
+import type { Admin as ApiAdmin, Role as ApiRole } from "@/lib/types";
 import {
   Plus, X, ShieldCheck, ShieldAlert, Shield, Key,
   Pencil, Trash2, CheckCircle, AlertCircle, Users,
@@ -17,6 +19,7 @@ type Role = {
   color: string;
   permissions: string[];
   isSystem: boolean;
+  adminCount: number;
 };
 
 type Admin = {
@@ -24,9 +27,17 @@ type Admin = {
   name: string;
   email: string;
   roleId: string;
-  status: "Hoạt động" | "Bị khóa";
-  lastLogin: string;
+  roleName: string;
+  status: "HoatDong" | "BiKhoa";
+  lastLogin?: string;
 };
+
+function mapApiAdmin(a: ApiAdmin): Admin {
+  return { id: a.id, name: a.name, email: a.email, roleId: a.roleId, roleName: a.roleName, status: a.status, lastLogin: a.lastLogin };
+}
+function mapApiRole(r: ApiRole): Role {
+  return { id: r.id, name: r.name, description: r.description ?? "", color: r.color, permissions: r.permissions, isSystem: r.isSystem, adminCount: r.adminCount };
+}
 
 /* ─── All available permissions ─────────────────────────────── */
 const PERMISSION_GROUPS: Record<string, string[]> = {
@@ -44,39 +55,6 @@ const PERMISSION_GROUPS: Record<string, string[]> = {
 };
 const ALL_PERMISSIONS = Object.values(PERMISSION_GROUPS).flat();
 
-/* ─── Mock data ──────────────────────────────────────────────── */
-const INIT_ROLES: Role[] = [
-  { id: "r-1", name: "Super Admin", description: "Toàn quyền hệ thống, không giới hạn", color: "#f59e0b", isSystem: true, permissions: ALL_PERMISSIONS },
-  { id: "r-2", name: "Quản lý", description: "Quản lý đơn hàng, sản phẩm và khách hàng", color: "#3b82f6", isSystem: false, permissions: [
-    "Xem Dashboard", "Xem thống kê doanh thu",
-    "Xem đơn hàng", "Tạo đơn hàng", "Sửa đơn hàng", "Xóa đơn hàng", "Hoàn tiền đơn hàng", "Xuất Excel đơn hàng",
-    "Xem sản phẩm", "Tạo sản phẩm", "Sửa sản phẩm", "Xóa sản phẩm",
-    "Xem danh mục", "Tạo danh mục", "Sửa danh mục",
-    "Xem khách hàng", "Sửa khách hàng", "Khóa/Mở khóa khách hàng",
-    "Xem kho hàng", "Nhập kho", "Xuất kho",
-    "Xem key", "Tạo key", "Khóa/Mở khóa key",
-    "Quản lý Banner", "Quản lý Tin tức",
-    "Xem doanh thu",
-  ]},
-  { id: "r-3", name: "Hỗ trợ", description: "Xem và hỗ trợ khách hàng, xử lý đơn hàng", color: "#10b981", isSystem: false, permissions: [
-    "Xem Dashboard",
-    "Xem đơn hàng", "Sửa đơn hàng",
-    "Xem khách hàng", "Sửa khách hàng",
-    "Xem key", "Khóa/Mở khóa key",
-  ]},
-  { id: "r-4", name: "Kế toán", description: "Xem báo cáo tài chính và đơn hàng", color: "#06b6d4", isSystem: false, permissions: [
-    "Xem Dashboard", "Xem thống kê doanh thu", "Xem báo cáo",
-    "Xem đơn hàng", "Xuất Excel đơn hàng",
-    "Xem doanh thu", "Xuất báo cáo tài chính",
-  ]},
-];
-
-const INIT_ADMINS: Admin[] = [
-  { id: "a-1", name: "Nexkey Admin",   email: "admin@nexkey.vn",   roleId: "r-1", status: "Hoạt động", lastLogin: "27/05/2024 10:32" },
-  { id: "a-2", name: "Trung Quản lý",  email: "manager@nexkey.vn", roleId: "r-2", status: "Hoạt động", lastLogin: "27/05/2024 08:15" },
-  { id: "a-3", name: "Thu Hỗ trợ",     email: "support@nexkey.vn", roleId: "r-3", status: "Hoạt động", lastLogin: "26/05/2024 17:40" },
-  { id: "a-4", name: "Linh Kế toán",   email: "finance@nexkey.vn", roleId: "r-4", status: "Bị khóa",   lastLogin: "20/05/2024 09:00" },
-];
 
 const COLOR_PRESETS = ["#f59e0b", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4", "#ec4899", "#64748b"];
 
@@ -426,8 +404,9 @@ function DeleteAdminModal({ admin, onConfirm, onClose }: { admin: Admin; onConfi
 
 /* ─── Main Page ──────────────────────────────────────────────── */
 export default function AdminsPage() {
-  const [roles, setRoles]       = useState<Role[]>(INIT_ROLES);
-  const [admins, setAdmins]     = useState<Admin[]>(INIT_ADMINS);
+  const [roles, setRoles]       = useState<Role[]>([]);
+  const [admins, setAdmins]     = useState<Admin[]>([]);
+  const [loading, setLoading]   = useState(true);
   const [creatingAdmin, setCreatingAdmin] = useState(false);
   const [editingAdmin, setEditingAdmin]   = useState<Admin | null>(null);
   const [deletingAdmin, setDeletingAdmin] = useState<Admin | null>(null);
@@ -438,34 +417,77 @@ export default function AdminsPage() {
 
   const showToast = useCallback((msg: string, ok = true) => setToast({ msg, ok }), []);
 
-  const handleSave = useCallback((data: Partial<Role> & { id?: string }) => {
-    if (data.id) {
-      setRoles(prev => prev.map(r => r.id === data.id ? { ...r, ...data } : r));
-      showToast(`Đã cập nhật vai trò "${data.name}"`);
-    } else {
-      setRoles(prev => [...prev, { id: `r-${Date.now()}`, ...data } as Role]);
-      showToast(`Đã tạo vai trò "${data.name}"`);
-    }
+  const refreshData = useCallback(() => {
+    setLoading(true);
+    Promise.all([adminsApi.list(), rolesApi.list()])
+      .then(([adminList, roleList]) => {
+        setAdmins(adminList.map(mapApiAdmin));
+        setRoles(roleList.map(mapApiRole));
+      })
+      .catch(() => showToast("Không thể tải dữ liệu", false))
+      .finally(() => setLoading(false));
   }, [showToast]);
 
-  const handleDelete = useCallback((id: string) => {
-    const role = roles.find(r => r.id === id);
-    setRoles(prev => prev.filter(r => r.id !== id));
-    showToast(`Đã xóa vai trò "${role?.name}"`);
-  }, [roles, showToast]);
+  useEffect(() => { refreshData(); }, [refreshData]);
 
-  const handleAssignRole = useCallback((adminId: string, roleId: string) => {
+  const handleSave = useCallback(async (data: Partial<Role> & { id?: string }) => {
+    try {
+      if (data.id) {
+        await rolesApi.update(data.id, { name: data.name, description: data.description, color: data.color, permissions: data.permissions });
+        showToast(`Đã cập nhật vai trò "${data.name}"`);
+      } else {
+        await rolesApi.create({ name: data.name!, description: data.description ?? "", color: data.color!, permissions: data.permissions! });
+        showToast(`Đã tạo vai trò "${data.name}"`);
+      }
+      refreshData();
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Lưu vai trò thất bại", false);
+    }
+  }, [showToast, refreshData]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    const role = roles.find(r => r.id === id);
+    try {
+      await rolesApi.delete(id);
+      showToast(`Đã xóa vai trò "${role?.name}"`);
+      refreshData();
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Xóa vai trò thất bại", false);
+    }
+  }, [roles, showToast, refreshData]);
+
+  const handleAssignRole = useCallback(async (adminId: string, roleId: string) => {
     const admin = admins.find(a => a.id === adminId);
     const role  = roles.find(r => r.id === roleId);
-    setAdmins(prev => prev.map(a => a.id === adminId ? { ...a, roleId } : a));
-    showToast(`Đã gán "${role?.name}" cho ${admin?.name}`);
-  }, [admins, roles, showToast]);
+    try {
+      await adminsApi.assignRole(adminId, roleId);
+      showToast(`Đã gán "${role?.name}" cho ${admin?.name}`);
+      refreshData();
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Gán vai trò thất bại", false);
+    }
+  }, [admins, roles, showToast, refreshData]);
 
-  const handleDeleteAdmin = useCallback((id: string) => {
+  const handleDeleteAdmin = useCallback(async (id: string) => {
     const admin = admins.find(a => a.id === id);
-    setAdmins(prev => prev.filter(a => a.id !== id));
-    showToast(`Đã xóa tài khoản ${admin?.name}`);
-  }, [admins, showToast]);
+    try {
+      await adminsApi.delete(id);
+      showToast(`Đã xóa tài khoản ${admin?.name}`);
+      refreshData();
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Xóa tài khoản thất bại", false);
+    }
+  }, [admins, showToast, refreshData]);
+
+  const handleLockAdmin = useCallback(async (id: string, locked: boolean) => {
+    try {
+      await adminsApi.lock(id, locked);
+      showToast(locked ? "Đã khóa tài khoản" : "Đã mở khóa tài khoản");
+      refreshData();
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Thao tác thất bại", false);
+    }
+  }, [showToast, refreshData]);
 
   const totalPerms = new Set(roles.flatMap(r => r.permissions)).size;
 
@@ -473,7 +495,14 @@ export default function AdminsPage() {
     <AdminLayout title="Phân quyền Admin" subtitle="Quản lý vai trò và quyền hạn hệ thống">
       <div className="page-content">
 
-        <StatsGrid cols={4}>
+        {loading && (
+          <div style={{ textAlign: "center", padding: 40 }}>
+            <span style={{ display: "inline-block", width: 24, height: 24, border: "2px solid #334155", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+          </div>
+        )}
+
+        {!loading && (
+        <><StatsGrid cols={4}>
           <StatCard label="Tổng vai trò" value={roles.length} changeLabel="vai trò" icon="users" color="blue" />
           <StatCard label="Tổng quyền hạn" value={totalPerms} changeLabel="quyền khả dụng" icon="activity" color="purple" />
           <StatCard label="Tổng admin" value={admins.length} changeLabel="tài khoản" icon="users" color="green" />
@@ -557,8 +586,8 @@ export default function AdminsPage() {
                       {roleAdmins.map(a => (
                         <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 8px 3px 4px", borderRadius: 99, background: "rgba(30,42,80,0.5)", border: "1px solid rgba(30,42,80,0.8)" }}>
                           <div style={{ width: 20, height: 20, borderRadius: "50%", background: `${role.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: role.color }}>{a.name[0]}</div>
-                          <span style={{ fontSize: 11, color: a.status === "Bị khóa" ? "#475569" : "#94a3b8" }}>{a.name.split(" ").slice(-1)[0]}</span>
-                          {a.status === "Bị khóa" && <span style={{ fontSize: 9, color: "#ef4444" }}>●</span>}
+                          <span style={{ fontSize: 11, color: a.status === "BiKhoa" ? "#475569" : "#94a3b8" }}>{a.name.split(" ").slice(-1)[0]}</span>
+                          {a.status === "BiKhoa" && <span style={{ fontSize: 9, color: "#ef4444" }}>●</span>}
                         </div>
                       ))}
                     </div>
@@ -597,18 +626,13 @@ export default function AdminsPage() {
             <tbody>
               {admins.map(admin => {
                 const role = roles.find(r => r.id === admin.roleId);
-                const isLocked = admin.status === "Bị khóa";
-                const AVATAR_GRADIENTS: Record<string, string> = {
-                  "r-1": "linear-gradient(135deg,#d97706,#f59e0b)",
-                  "r-2": "linear-gradient(135deg,#2563eb,#3b82f6)",
-                  "r-3": "linear-gradient(135deg,#059669,#10b981)",
-                  "r-4": "linear-gradient(135deg,#0891b2,#06b6d4)",
-                };
+                const isLocked = admin.status === "BiKhoa";
+                const avatarBg = role ? `${role.color}30` : "rgba(71,85,105,0.5)";
                 return (
                   <tr key={admin.id} style={{ opacity: isLocked ? 0.6 : 1 }}>
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 10, background: AVATAR_GRADIENTS[admin.roleId] ?? "linear-gradient(135deg,#475569,#64748b)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: avatarBg, display: "flex", alignItems: "center", justifyContent: "center", color: role?.color ?? "#64748b", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
                           {admin.name[0]}
                         </div>
                         <span style={{ fontSize: 13, fontWeight: 500, color: "#e2e8f0" }}>{admin.name}</span>
@@ -620,18 +644,22 @@ export default function AdminsPage() {
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 700, color: role.color, background: `${role.color}15`, padding: "2px 10px", borderRadius: 99 }}>
                           <ShieldCheck size={11} />{role.name}
                         </span>
-                      ) : <span style={{ color: "#334155", fontSize: 11 }}>—</span>}
+                      ) : <span style={{ color: "#334155", fontSize: 11 }}>{admin.roleName || "—"}</span>}
                     </td>
-                    <td><span style={{ fontSize: 11, color: "#475569" }}>{admin.lastLogin}</span></td>
+                    <td><span style={{ fontSize: 11, color: "#475569" }}>{admin.lastLogin ?? "—"}</span></td>
                     <td>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: isLocked ? "#ef4444" : "#10b981", background: isLocked ? "rgba(239,68,68,0.1)" : "rgba(16,185,129,0.1)", padding: "2px 8px", borderRadius: 99 }}>
-                        {admin.status}
+                      <span
+                        style={{ fontSize: 11, fontWeight: 700, color: isLocked ? "#ef4444" : "#10b981", background: isLocked ? "rgba(239,68,68,0.1)" : "rgba(16,185,129,0.1)", padding: "2px 8px", borderRadius: 99, cursor: "pointer" }}
+                        onClick={() => handleLockAdmin(admin.id, !isLocked)}
+                        title={isLocked ? "Nhấn để mở khóa" : "Nhấn để khóa"}
+                      >
+                        {isLocked ? "Bị khóa" : "Hoạt động"}
                       </span>
                     </td>
                     <td onClick={e => e.stopPropagation()}>
                       <div style={{ display: "flex", gap: 4 }}>
                         <button onClick={() => setEditingAdmin(admin)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid rgba(30,42,80,0.8)", background: "transparent", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Pencil size={12} /></button>
-                        {admin.id !== "a-1" && (
+                        {!role?.isSystem && (
                           <button onClick={() => setDeletingAdmin(admin)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid rgba(239,68,68,0.2)", background: "transparent", color: "#f87171", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><Trash2 size={12} /></button>
                         )}
                       </div>
@@ -644,8 +672,10 @@ export default function AdminsPage() {
         </div>
 
         <div style={{ fontSize: 12, color: "#334155" }}>
-          {admins.length} tài khoản · Tài khoản <span style={{ color: "#f59e0b", fontWeight: 600 }}>Nexkey Admin</span> không thể xóa
+          {admins.length} tài khoản · Vai trò hệ thống <span style={{ color: "#f59e0b", fontWeight: 600 }}>không thể xóa admin</span>
         </div>
+        </>
+        )}
       </div>
 
       {/* Modals */}

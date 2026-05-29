@@ -10,36 +10,18 @@ import {
   Hash, ToggleLeft, ToggleRight,
   ChevronLeft, ChevronRight,
 } from "lucide-react";
+import { faqApi } from "@/lib/api";
+import type { ApiMeta } from "@/lib/api";
+import type { FaqItem, FaqStatus, FaqCategory } from "@/lib/types";
 
-/* ─── Types ──────────────────────────────────────────────────── */
-type FAQStatus = "Hiển thị" | "Ẩn";
-
-type FAQItem = {
-  id: string;
-  question: string;
-  answer: string;
-  category: string;
-  status: FAQStatus;
-  sortOrder: number;
-  createdAt: string;
+/* ─── Display label maps ─────────────────────────────────────────── */
+const STATUS_LABEL: Record<FaqStatus, string> = {
+  HienThi: "Hiển thị",
+  An:      "Ẩn",
 };
 
-/* ─── Mock data ──────────────────────────────────────────────── */
-const INITIAL_FAQS: FAQItem[] = [
-  { id: "faq-1", question: "Key phần mềm có phải bản quyền thật không?", answer: "Có, tất cả key tại NexKey đều là key bản quyền chính hãng, được cấp phép trực tiếp từ nhà phát hành. Chúng tôi cam kết 100% hàng chính hãng và hoàn tiền nếu key không hoạt động.", category: "Sản phẩm", status: "Hiển thị", sortOrder: 1, createdAt: "2024-04-01" },
-  { id: "faq-2", question: "Tôi có thể dùng 1 key cho nhiều máy tính không?", answer: "Điều này phụ thuộc vào loại key. Key Windows thường chỉ dùng được cho 1 thiết bị. Key Office 365 có thể dùng trên 5 thiết bị. Thông tin chi tiết được ghi rõ trong mô tả sản phẩm.", category: "Sản phẩm", status: "Hiển thị", sortOrder: 2, createdAt: "2024-04-01" },
-  { id: "faq-3", question: "Key có hết hạn không?", answer: "Tùy loại sản phẩm. Key Windows là vĩnh viễn (lifetime). Subscription như Office 365, YouTube Premium, Spotify Premium có thời hạn cụ thể (1 tháng, 3 tháng, 1 năm) được ghi rõ khi mua.", category: "Sản phẩm", status: "Hiển thị", sortOrder: 3, createdAt: "2024-04-01" },
-  { id: "faq-4", question: "Hỗ trợ những phương thức thanh toán nào?", answer: "NexKey hỗ trợ: Chuyển khoản ngân hàng (Banking), VietQR, MoMo, VNPay, và thẻ tín dụng/ghi nợ. Thanh toán được xử lý tự động và an toàn.", category: "Thanh toán", status: "Hiển thị", sortOrder: 1, createdAt: "2024-04-02" },
-  { id: "faq-5", question: "Sau khi thanh toán bao lâu nhận được key?", answer: "Key được giao tự động ngay sau khi thanh toán thành công, thường trong vòng 1-5 phút. Key sẽ hiển thị trong trang Chi tiết đơn hàng và được gửi qua email.", category: "Thanh toán", status: "Hiển thị", sortOrder: 2, createdAt: "2024-04-02" },
-  { id: "faq-6", question: "Tôi cần làm gì nếu thanh toán thành công nhưng chưa nhận được key?", answer: "Vui lòng kiểm tra trang Đơn hàng của bạn trước. Nếu vẫn chưa thấy, liên hệ hỗ trợ qua chat trực tuyến hoặc email support@nexkey.vn kèm mã đơn hàng. Chúng tôi sẽ xử lý trong vòng 15 phút.", category: "Thanh toán", status: "Hiển thị", sortOrder: 3, createdAt: "2024-04-02" },
-  { id: "faq-7", question: "Làm thế nào để kích hoạt key Windows?", answer: "1. Nhấn chuột phải vào icon Windows → Settings\n2. Chọn System → Activation\n3. Nhấn 'Change product key'\n4. Nhập key 25 ký tự nhận được\n5. Nhấn Next và chờ kích hoạt\n\nNếu gặp lỗi, liên hệ hỗ trợ để được hướng dẫn trực tiếp.", category: "Key & Kích hoạt", status: "Hiển thị", sortOrder: 1, createdAt: "2024-04-03" },
-  { id: "faq-8", question: "Key báo lỗi 'This product key has already been used' phải làm gì?", answer: "Đây là lỗi key bị trùng. Vui lòng liên hệ ngay support@nexkey.vn hoặc chat trực tiếp với mã đơn hàng. Chúng tôi sẽ đổi key mới miễn phí trong vòng 24 giờ.", category: "Key & Kích hoạt", status: "Hiển thị", sortOrder: 2, createdAt: "2024-04-03" },
-  { id: "faq-9", question: "Chính sách hoàn tiền như thế nào?", answer: "NexKey hỗ trợ hoàn tiền 100% trong các trường hợp: key không hoạt động, key sai sản phẩm so với mô tả, hoặc lỗi từ phía hệ thống. Yêu cầu hoàn tiền cần được gửi trong vòng 7 ngày kể từ ngày mua.", category: "Bảo hành", status: "Hiển thị", sortOrder: 1, createdAt: "2024-04-04" },
-  { id: "faq-10", question: "Làm thế nào để liên hệ hỗ trợ?", answer: "Bạn có thể liên hệ qua:\n• Email: support@nexkey.vn\n• Chat trực tuyến trên website (góc dưới phải)\n• Zalo/Telegram: 0912 345 678\n\nThời gian hỗ trợ: 8:00 - 22:00 hàng ngày.", category: "Khác", status: "Hiển thị", sortOrder: 1, createdAt: "2024-04-05" },
-];
-
-/* ─── Constants ──────────────────────────────────────────────── */
-const CATEGORIES = ["Sản phẩm", "Thanh toán", "Key & Kích hoạt", "Bảo hành", "Khác"];
+/* ─── Constants ──────────────────────────────────────────────────── */
+const CATEGORIES: FaqCategory[] = ["Sản phẩm", "Thanh toán", "Key & Kích hoạt", "Bảo hành", "Khác"];
 
 const CAT_COLORS: Record<string, string> = {
   "Sản phẩm":         "#3b82f6",
@@ -49,7 +31,7 @@ const CAT_COLORS: Record<string, string> = {
   "Khác":             "#64748b",
 };
 
-/* ─── Modal wrapper ──────────────────────────────────────────── */
+/* ─── Modal wrapper ──────────────────────────────────────────────── */
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -63,17 +45,17 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
   );
 }
 
-/* ─── FAQ Form Modal ─────────────────────────────────────────── */
+/* ─── FAQ Form Modal ─────────────────────────────────────────────── */
 function FAQFormModal({ faq, onSave, onClose }: {
-  faq?: FAQItem;
-  onSave: (data: Partial<FAQItem> & { id?: string }) => void;
+  faq?: FaqItem;
+  onSave: (data: { id?: string; question: string; answer: string; category: FaqCategory; status: FaqStatus; sortOrder: number }) => void;
   onClose: () => void;
 }) {
   const isEdit = !!faq;
   const [question, setQuestion] = useState(faq?.question ?? "");
   const [answer, setAnswer]     = useState(faq?.answer ?? "");
-  const [category, setCategory] = useState(faq?.category ?? CATEGORIES[0]);
-  const [status, setStatus]     = useState<FAQStatus>(faq?.status ?? "Hiển thị");
+  const [category, setCategory] = useState<FaqCategory>(faq?.category ?? CATEGORIES[0]);
+  const [status, setStatus]     = useState<FaqStatus>(faq?.status ?? "HienThi");
   const [sortOrder, setSortOrder] = useState(String(faq?.sortOrder ?? 1));
   const [errors, setErrors]     = useState<Record<string, string>>({});
 
@@ -129,7 +111,7 @@ function FAQFormModal({ faq, onSave, onClose }: {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 12 }}>
             <div>
               <label style={labelStyle}>Danh mục</label>
-              <select style={{ ...inputStyle, cursor: "pointer" }} value={category} onChange={e => setCategory(e.target.value)}>
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={category} onChange={e => setCategory(e.target.value as FaqCategory)}>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
@@ -142,9 +124,9 @@ function FAQFormModal({ faq, onSave, onClose }: {
           <div>
             <label style={labelStyle}>Trạng thái</label>
             <div style={{ display: "flex", gap: 8 }}>
-              {(["Hiển thị", "Ẩn"] as FAQStatus[]).map(s => (
-                <button key={s} onClick={() => setStatus(s)} style={{ flex: 1, padding: "9px 0", borderRadius: 8, fontSize: 13, fontWeight: status === s ? 700 : 400, border: "1px solid", borderColor: status === s ? (s === "Hiển thị" ? "#10b981" : "#ef4444") : "rgba(30,42,80,0.8)", background: status === s ? (s === "Hiển thị" ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.1)") : "transparent", color: status === s ? (s === "Hiển thị" ? "#34d399" : "#f87171") : "#64748b", cursor: "pointer" }}>
-                  {s}
+              {(["HienThi", "An"] as FaqStatus[]).map(s => (
+                <button key={s} onClick={() => setStatus(s)} style={{ flex: 1, padding: "9px 0", borderRadius: 8, fontSize: 13, fontWeight: status === s ? 700 : 400, border: "1px solid", borderColor: status === s ? (s === "HienThi" ? "#10b981" : "#ef4444") : "rgba(30,42,80,0.8)", background: status === s ? (s === "HienThi" ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.1)") : "transparent", color: status === s ? (s === "HienThi" ? "#34d399" : "#f87171") : "#64748b", cursor: "pointer" }}>
+                  {STATUS_LABEL[s]}
                 </button>
               ))}
             </div>
@@ -162,8 +144,8 @@ function FAQFormModal({ faq, onSave, onClose }: {
   );
 }
 
-/* ─── Delete Modal ───────────────────────────────────────────── */
-function DeleteModal({ faq, onConfirm, onClose }: { faq: FAQItem; onConfirm: () => void; onClose: () => void }) {
+/* ─── Delete Modal ───────────────────────────────────────────────── */
+function DeleteModal({ faq, onConfirm, onClose }: { faq: FaqItem; onConfirm: () => void; onClose: () => void }) {
   return (
     <Modal onClose={onClose}>
       <div style={{ width: 360, maxWidth: "90vw", background: "#0d1226", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 16, overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" }}>
@@ -183,14 +165,14 @@ function DeleteModal({ faq, onConfirm, onClose }: { faq: FAQItem; onConfirm: () 
   );
 }
 
-/* ─── FAQ Item Row ───────────────────────────────────────────── */
+/* ─── FAQ Item Row ───────────────────────────────────────────────── */
 function FAQRow({ faq, onEdit, onDelete, onToggle }: {
-  faq: FAQItem;
+  faq: FaqItem;
   onEdit: () => void; onDelete: () => void; onToggle: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const color = CAT_COLORS[faq.category] ?? "#64748b";
-  const isVisible = faq.status === "Hiển thị";
+  const isVisible = faq.status === "HienThi";
 
   return (
     <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: 12, border: "1px solid rgba(30,42,80,0.5)", overflow: "hidden", borderLeft: `3px solid ${color}40`, transition: "border-color 0.2s" }}>
@@ -213,7 +195,7 @@ function FAQRow({ faq, onEdit, onDelete, onToggle }: {
 
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <span style={{ fontSize: 10, fontWeight: 700, color, background: `${color}15`, padding: "2px 8px", borderRadius: 99 }}>{faq.category}</span>
-          <span style={{ fontSize: 10, fontWeight: 700, color: isVisible ? "#10b981" : "#64748b", background: isVisible ? "rgba(16,185,129,0.1)" : "rgba(100,116,139,0.1)", padding: "2px 8px", borderRadius: 99 }}>{faq.status}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: isVisible ? "#10b981" : "#64748b", background: isVisible ? "rgba(16,185,129,0.1)" : "rgba(100,116,139,0.1)", padding: "2px 8px", borderRadius: 99 }}>{STATUS_LABEL[faq.status]}</span>
           <div style={{ color: "#475569" }}>{expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</div>
         </div>
       </div>
@@ -260,57 +242,92 @@ function PagBtn({ children, onClick, disabled = false, active = false }: { child
   );
 }
 
-/* ─── Main Page ──────────────────────────────────────────────── */
+/* ─── Main Page ──────────────────────────────────────────────────── */
 export default function FAQPage() {
-  const [faqs, setFaqs]         = useState<FAQItem[]>(INITIAL_FAQS);
-  const [search, setSearch]     = useState("");
+  const [faqs, setFaqs]           = useState<FaqItem[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [apiError, setApiError]   = useState<string | null>(null);
+  const [meta, setMeta]           = useState<ApiMeta>({ total: 0, page: 1, limit: PAGE_SIZE, totalPages: 1 });
+  const [search, setSearch]       = useState("");
   const [activeTab, setActiveTab] = useState("Tất cả");
-  const [page, setPage]         = useState(1);
-  const [editing, setEditing]   = useState<FAQItem | null>(null);
-  const [deleting, setDeleting] = useState<FAQItem | null>(null);
-  const [creating, setCreating] = useState(false);
+  const [page, setPage]           = useState(1);
+  const [editing, setEditing]     = useState<FaqItem | null>(null);
+  const [deleting, setDeleting]   = useState<FaqItem | null>(null);
+  const [creating, setCreating]   = useState(false);
 
   const TABS = ["Tất cả", ...CATEGORIES];
 
-  const filtered = faqs.filter(f => {
-    const tabOk    = activeTab === "Tất cả" || f.category === activeTab;
-    const searchOk = !search || [f.question, f.answer, f.category].some(s => s.toLowerCase().includes(search.toLowerCase()));
-    return tabOk && searchOk;
-  }).sort((a, b) => a.sortOrder - b.sortOrder);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  const count      = (tab: string) => tab === "Tất cả" ? faqs.length : faqs.filter(f => f.category === tab).length;
-  const visibleCnt = faqs.filter(f => f.status === "Hiển thị").length;
-  const catCount   = new Set(faqs.map(f => f.category)).size;
-
-  const handleSave = useCallback((data: Partial<FAQItem> & { id?: string }) => {
-    if (data.id) {
-      setFaqs(prev => prev.map(f => f.id === data.id ? { ...f, ...data } : f));
-    } else {
-      setFaqs(prev => [...prev, { id: `faq-${Date.now()}`, createdAt: new Date().toISOString().slice(0, 10), ...data } as FAQItem]);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      const categoryParam = activeTab === "Tất cả" ? undefined : activeTab;
+      const result = await faqApi.list({ page, limit: PAGE_SIZE, search: search || undefined, category: categoryParam });
+      setFaqs(result.data);
+      setMeta(result.meta);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [page, search, activeTab]);
 
-  const handleDelete = useCallback((id: string) => {
-    setFaqs(prev => prev.filter(f => f.id !== id));
-  }, []);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleToggle = useCallback((id: string) => {
-    setFaqs(prev => prev.map(f => f.id === id ? { ...f, status: f.status === "Hiển thị" ? "Ẩn" : "Hiển thị" } : f));
-  }, []);
+  const count = (tab: string) => {
+    if (tab === "Tất cả") return meta.total;
+    return faqs.filter(f => f.category === tab).length;
+  };
+  const visibleCnt = faqs.filter(f => f.status === "HienThi").length;
+  const catCount = new Set(faqs.map(f => f.category)).size;
+
+  const handleSave = useCallback(async (data: { id?: string; question: string; answer: string; category: FaqCategory; status: FaqStatus; sortOrder: number }) => {
+    try {
+      if (data.id) {
+        await faqApi.update(data.id, data);
+      } else {
+        await faqApi.create(data);
+      }
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await faqApi.delete(id);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
+
+  const handleToggle = useCallback(async (id: string) => {
+    try {
+      await faqApi.toggle(id);
+      await fetchData();
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
+    }
+  }, [fetchData]);
 
   return (
     <AdminLayout title="FAQ" subtitle="Câu hỏi thường gặp">
       <div className="page-content">
 
         <StatsGrid cols={4}>
-          <StatCard label="Tổng câu hỏi" value={faqs.length} change={2} changeLabel="so với tháng trước" icon="activity" color="blue" />
+          <StatCard label="Tổng câu hỏi" value={meta.total} change={2} changeLabel="so với tháng trước" icon="activity" color="blue" />
           <StatCard label="Đang hiển thị" value={visibleCnt} changeLabel="so với tháng trước" icon="activity" color="green" />
           <StatCard label="Danh mục" value={catCount} changeLabel="so với tháng trước" icon="activity" color="purple" />
           <StatCard label="Đang ẩn" value={faqs.length - visibleCnt} changeLabel="so với tháng trước" icon="activity" color="amber" />
         </StatsGrid>
+
+        {apiError && (
+          <div style={{ padding: "12px 16px", borderRadius: 10, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171", fontSize: 13 }}>
+            {apiError}
+          </div>
+        )}
 
         {/* Toolbar */}
         <div className="glass-card" style={{ padding: 16 }}>
@@ -348,9 +365,13 @@ export default function FAQPage() {
         </div>
 
         {/* FAQ list */}
-        {filtered.length > 0 ? (
+        {loading ? (
+          <div className="glass-card" style={{ padding: "60px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+            <span style={{ display: "inline-block", width: 20, height: 20, border: "2px solid #334155", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+          </div>
+        ) : faqs.length > 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {pageItems.map(faq => (
+            {faqs.map(faq => (
               <FAQRow
                 key={faq.id}
                 faq={faq}
@@ -370,14 +391,14 @@ export default function FAQPage() {
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 12, color: "#475569" }}>
-            {filtered.length === 0 ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)}`} / {filtered.length} câu hỏi · Click để xem câu trả lời
+            {meta.total === 0 ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, meta.total)}`} / {meta.total} câu hỏi · Click để xem câu trả lời
           </span>
           <div style={{ display: "flex", gap: 4 }}>
             <PagBtn onClick={() => setPage(p => p - 1)} disabled={page === 1}><ChevronLeft size={14} /></PagBtn>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+            {Array.from({ length: meta.totalPages }, (_, i) => i + 1).map(p => (
               <PagBtn key={p} onClick={() => setPage(p)} active={p === page}>{p}</PagBtn>
             ))}
-            <PagBtn onClick={() => setPage(p => p + 1)} disabled={page === totalPages}><ChevronRight size={14} /></PagBtn>
+            <PagBtn onClick={() => setPage(p => p + 1)} disabled={page === meta.totalPages}><ChevronRight size={14} /></PagBtn>
           </div>
         </div>
       </div>

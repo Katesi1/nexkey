@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/Button";
+import { settingsApi } from "@/lib/api";
 import {
   Settings, Globe, CreditCard, Mail, ShieldCheck, Palette,
   Save, Phone, MapPin, Building2, Lock, Key, Eye, EyeOff,
@@ -32,28 +33,13 @@ type ThemeSettings = {
 
 /* ─── Initial values ─────────────────────────────────────────── */
 const INIT_GENERAL: GeneralSettings = {
-  shopName: "NexKey Store", domain: "nexkey.vn", email: "support@nexkey.vn",
-  phone: "1900 1234", address: "TP. Hồ Chí Minh, Việt Nam", taxCode: "0312345678",
-  description: "NexKey - Nền tảng mua bán phần mềm bản quyền số uy tín hàng đầu Việt Nam.",
+  shopName: "", domain: "", email: "", phone: "", address: "", taxCode: "", description: "",
   maintenance: false, allowRegister: true, autoDeliverKey: true, sendEmailNotify: true,
 };
-const INIT_SEO: SeoSettings = {
-  title: "NexKey - Mua phần mềm bản quyền giá tốt nhất",
-  description: "NexKey cung cấp Windows, Office, YouTube Premium, Spotify và hàng trăm phần mềm bản quyền với giá tốt nhất Việt Nam.",
-  keywords: "phần mềm bản quyền, windows key, office 365, youtube premium",
-  gaId: "", gtmId: "",
-};
-const INIT_EMAIL: EmailSettings = {
-  host: "smtp.gmail.com", port: "587", username: "mailer@nexkey.vn",
-  password: "smtp-password", fromEmail: "noreply@nexkey.vn", fromName: "NexKey Store",
-};
-const INIT_SEC_TOGGLES: SecurityToggles = {
-  twoFA: false, limitLogin: true, sessionExpiry: true, ipVietnam: false,
-};
-const INIT_THEME: ThemeSettings = {
-  primary: "#3b82f6", accent: "#8b5cf6",
-  showSearch: true, darkMode: true, chatWidget: true, animations: true,
-};
+const INIT_SEO: SeoSettings = { title: "", description: "", keywords: "", gaId: "", gtmId: "" };
+const INIT_EMAIL: EmailSettings = { host: "", port: "", username: "", password: "", fromEmail: "", fromName: "" };
+const INIT_SEC_TOGGLES: SecurityToggles = { twoFA: false, limitLogin: false, sessionExpiry: false, ipVietnam: false };
+const INIT_THEME: ThemeSettings = { primary: "#3b82f6", accent: "#8b5cf6", showSearch: true, darkMode: true, chatWidget: true, animations: true };
 
 /* ─── Tab list ───────────────────────────────────────────────── */
 const TABS = [
@@ -310,6 +296,14 @@ function ThemeTab({ s, set }: { s: ThemeSettings; set: React.Dispatch<React.SetS
   );
 }
 
+/* ─── Helpers ────────────────────────────────────────────────── */
+function parseBoolean(v: string | undefined): boolean {
+  return v === "true" || v === "1";
+}
+function fromGrouped(groups: { group: string; settings: Record<string, string> }[], groupName: string): Record<string, string> {
+  return groups.find(g => g.group === groupName)?.settings ?? {};
+}
+
 /* ─── Main Page ──────────────────────────────────────────────── */
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>("general");
@@ -318,18 +312,99 @@ export default function SettingsPage() {
   const [email, setEmail]         = useState<EmailSettings>(INIT_EMAIL);
   const [secToggles, setSecToggles] = useState<SecurityToggles>(INIT_SEC_TOGGLES);
   const [theme, setTheme]         = useState<ThemeSettings>(INIT_THEME);
+  const [loading, setLoading]     = useState(true);
+  const [saving, setSaving]       = useState(false);
 
-  // Saved snapshots (simulate backend)
+  // Saved snapshots for dirty detection
   const [saved, setSaved]         = useState({ general: INIT_GENERAL, seo: INIT_SEO, email: INIT_EMAIL, secToggles: INIT_SEC_TOGGLES, theme: INIT_THEME });
 
   const [toast, setToast]         = useState<{ msg: string; type: "success" | "error" | "info" } | null>(null);
   const showToast = useCallback((msg: string, type: "success" | "error" | "info" = "success") => setToast({ msg, type }), []);
 
+  // Fetch all settings on mount
+  useEffect(() => {
+    setLoading(true);
+    settingsApi.list()
+      .then(groups => {
+        const g = fromGrouped(groups, "general");
+        const s = fromGrouped(groups, "seo");
+        const e = fromGrouped(groups, "email");
+        const sec = fromGrouped(groups, "security");
+        const t = fromGrouped(groups, "theme");
+
+        const newGeneral: GeneralSettings = {
+          shopName: g.shopName ?? "", domain: g.domain ?? "", email: g.email ?? "",
+          phone: g.phone ?? "", address: g.address ?? "", taxCode: g.taxCode ?? "",
+          description: g.description ?? "",
+          maintenance: parseBoolean(g.maintenance),
+          allowRegister: parseBoolean(g.allowRegister),
+          autoDeliverKey: parseBoolean(g.autoDeliverKey),
+          sendEmailNotify: parseBoolean(g.sendEmailNotify),
+        };
+        const newSeo: SeoSettings = {
+          title: s.title ?? "", description: s.description ?? "",
+          keywords: s.keywords ?? "", gaId: s.gaId ?? "", gtmId: s.gtmId ?? "",
+        };
+        const newEmail: EmailSettings = {
+          host: e.host ?? "", port: e.port ?? "", username: e.username ?? "",
+          password: e.password ?? "", fromEmail: e.fromEmail ?? "", fromName: e.fromName ?? "",
+        };
+        const newSec: SecurityToggles = {
+          twoFA: parseBoolean(sec.twoFA),
+          limitLogin: parseBoolean(sec.limitLogin),
+          sessionExpiry: parseBoolean(sec.sessionExpiry),
+          ipVietnam: parseBoolean(sec.ipVietnam),
+        };
+        const newTheme: ThemeSettings = {
+          primary: t.primary ?? "#3b82f6", accent: t.accent ?? "#8b5cf6",
+          showSearch: parseBoolean(t.showSearch !== undefined ? t.showSearch : "true"),
+          darkMode: parseBoolean(t.darkMode !== undefined ? t.darkMode : "true"),
+          chatWidget: parseBoolean(t.chatWidget !== undefined ? t.chatWidget : "true"),
+          animations: parseBoolean(t.animations !== undefined ? t.animations : "true"),
+        };
+
+        setGeneral(newGeneral); setSeo(newSeo); setEmail(newEmail);
+        setSecToggles(newSec); setTheme(newTheme);
+        setSaved({ general: newGeneral, seo: newSeo, email: newEmail, secToggles: newSec, theme: newTheme });
+      })
+      .catch(() => showToast("Không thể tải cài đặt", "error"))
+      .finally(() => setLoading(false));
+  }, [showToast]);
+
   const isDirty = JSON.stringify({ general, seo, email, secToggles, theme }) !== JSON.stringify(saved);
 
-  const handleSave = () => {
-    setSaved({ general, seo, email, secToggles, theme });
-    showToast("Đã lưu cài đặt thành công!", "success");
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const body: Record<string, string> = {
+        // general
+        shopName: general.shopName, domain: general.domain, email: general.email,
+        phone: general.phone, address: general.address, taxCode: general.taxCode,
+        description: general.description,
+        maintenance: String(general.maintenance), allowRegister: String(general.allowRegister),
+        autoDeliverKey: String(general.autoDeliverKey), sendEmailNotify: String(general.sendEmailNotify),
+        // seo
+        title: seo.title, metaDescription: seo.description, keywords: seo.keywords,
+        gaId: seo.gaId, gtmId: seo.gtmId,
+        // email
+        smtpHost: email.host, smtpPort: email.port, smtpUsername: email.username,
+        smtpPassword: email.password, fromEmail: email.fromEmail, fromName: email.fromName,
+        // security
+        twoFA: String(secToggles.twoFA), limitLogin: String(secToggles.limitLogin),
+        sessionExpiry: String(secToggles.sessionExpiry), ipVietnam: String(secToggles.ipVietnam),
+        // theme
+        primary: theme.primary, accent: theme.accent,
+        showSearch: String(theme.showSearch), darkMode: String(theme.darkMode),
+        chatWidget: String(theme.chatWidget), animations: String(theme.animations),
+      };
+      await settingsApi.update(body);
+      setSaved({ general, seo, email, secToggles, theme });
+      showToast("Đã lưu cài đặt thành công!", "success");
+    } catch {
+      showToast("Lưu cài đặt thất bại", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -341,9 +416,14 @@ export default function SettingsPage() {
     showToast("Đã hủy thay đổi", "info");
   };
 
-  const handleTestEmail = () => {
+  const handleTestEmail = async () => {
     if (!email.host || !email.username) { showToast("Vui lòng điền đầy đủ cấu hình SMTP", "error"); return; }
-    showToast(`Đã gửi email test đến ${email.fromEmail}`, "info");
+    try {
+      await settingsApi.testEmail(email.fromEmail || email.username);
+      showToast(`Đã gửi email test đến ${email.fromEmail}`, "info");
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Gửi email test thất bại", "error");
+    }
   };
 
   const TAB_CONTENT: Record<TabId, React.ReactNode> = {
@@ -358,7 +438,12 @@ export default function SettingsPage() {
   return (
     <AdminLayout title="Cài đặt" subtitle="Cấu hình hệ thống">
       <div className="page-content">
-        <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+        {loading && (
+          <div style={{ textAlign: "center", padding: 40 }}>
+            <span style={{ display: "inline-block", width: 24, height: 24, border: "2px solid #334155", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+          </div>
+        )}
+        {!loading && <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
 
           {/* Left nav */}
           <div className="glass-card" style={{ width: 220, flexShrink: 0, padding: 8 }}>
@@ -380,12 +465,14 @@ export default function SettingsPage() {
                 {isDirty ? <><AlertCircle size={13} style={{ color: "#f59e0b" }} />Có thay đổi chưa lưu</> : "Tất cả thay đổi đã được lưu"}
               </span>
               <div style={{ display: "flex", gap: 8 }}>
-                <Button variant="secondary" size="sm" onClick={handleCancel} disabled={!isDirty}>Hủy</Button>
-                <Button variant="primary" size="sm" icon={<Save size={13} />} onClick={handleSave} disabled={!isDirty}>Lưu cài đặt</Button>
+                <Button variant="secondary" size="sm" onClick={handleCancel} disabled={!isDirty || saving}>Hủy</Button>
+                <Button variant="primary" size="sm" icon={<Save size={13} />} onClick={handleSave} disabled={!isDirty || saving}>
+                  {saving ? "Đang lưu..." : "Lưu cài đặt"}
+                </Button>
               </div>
             </div>
           </div>
-        </div>
+        </div>}
       </div>
 
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}

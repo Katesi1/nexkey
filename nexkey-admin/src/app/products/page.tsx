@@ -5,9 +5,10 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatCard, StatsGrid } from "@/components/ui/StatCard";
 import { ProductStatusBadge } from "@/components/ui/Badge";
 import { Button, ActionButtons } from "@/components/ui/Button";
-import { products as initialProducts, categories } from "@/lib/mock-data";
+import { productsApi, categoriesApi } from "@/lib/api";
 import { formatVND } from "@/lib/utils";
 import type { Product, ProductStatus, ProductType } from "@/lib/types";
+import type { Category } from "@/lib/types";
 import {
   Search, Filter, Plus, Download, X,
   Package, DollarSign, BarChart2, Tag,
@@ -239,19 +240,21 @@ function DeleteModal({ product, onConfirm, onClose }: { product: Product; onConf
 }
 
 /* ─── Create Product Modal ───────────────────────────────────── */
-function CreateProductModal({ onCreate, onClose }: {
-  onCreate: (p: Product) => void;
+function CreateProductModal({ categories, onCreate, onClose }: {
+  categories: Category[];
+  onCreate: () => void;
   onClose: () => void;
 }) {
-  const [name, setName]           = useState("");
-  const [sku, setSku]             = useState("");
+  const [name, setName]             = useState("");
+  const [sku, setSku]               = useState("");
   const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "");
-  const [type, setType]           = useState<ProductType>("Windows Key");
-  const [price, setPrice]         = useState("");
+  const [type, setType]             = useState<ProductType>("Windows Key");
+  const [price, setPrice]           = useState("");
   const [comparePrice, setComparePrice] = useState("");
-  const [stock, setStock]         = useState("0");
-  const [status, setStatus]       = useState<ProductStatus>("Đang bán");
-  const [errors, setErrors]       = useState<Record<string, string>>({});
+  const [stock, setStock]           = useState("0");
+  const [status, setStatus]         = useState<ProductStatus>("Đang bán");
+  const [errors, setErrors]         = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const fmtPrice = (v: string) => {
     const d = v.replace(/\D/g, "");
@@ -267,25 +270,28 @@ function CreateProductModal({ onCreate, onClose }: {
     return e;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
-    const cat = categories.find(c => c.id === categoryId);
-    onCreate({
-      id: `p-${Date.now()}`,
-      name: name.trim(),
-      sku: sku.trim().toUpperCase(),
-      categoryId,
-      categoryName: cat?.name ?? "",
-      type,
-      price: Number(price.replace(/\./g, "")),
-      comparePrice: comparePrice ? Number(comparePrice.replace(/\./g, "")) : undefined,
-      stock: Number(stock) || 0,
-      sold: 0,
-      status,
-      createdAt: new Date().toISOString(),
-    });
-    onClose();
+    setSubmitting(true);
+    try {
+      await productsApi.create({
+        name: name.trim(),
+        sku: sku.trim().toUpperCase(),
+        categoryId,
+        type,
+        price: Number(price.replace(/\./g, "")),
+        comparePrice: comparePrice ? Number(comparePrice.replace(/\./g, "")) : undefined,
+        stock: Number(stock) || 0,
+        status,
+      });
+      onCreate();
+      onClose();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Lỗi tạo sản phẩm");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", borderRadius: 8, fontSize: 13, background: "#060a15", border: "1px solid rgba(30,42,80,0.9)", color: "#e2e8f0", outline: "none", boxSizing: "border-box" };
@@ -365,7 +371,9 @@ function CreateProductModal({ onCreate, onClose }: {
 
         <div style={{ padding: "14px 22px", borderTop: "1px solid rgba(30,42,80,0.6)", display: "flex", gap: 10, flexShrink: 0, background: "rgba(255,255,255,0.015)" }}>
           <Button variant="secondary" size="sm" onClick={onClose} style={{ flex: 1 }}>Hủy</Button>
-          <Button variant="primary" size="sm" onClick={handleSubmit} icon={<Plus size={13} />} style={{ flex: 2 }}>Thêm sản phẩm</Button>
+          <Button variant="primary" size="sm" onClick={handleSubmit} icon={<Plus size={13} />} style={{ flex: 2 }} disabled={submitting}>
+            {submitting ? "Đang thêm..." : "Thêm sản phẩm"}
+          </Button>
         </div>
       </div>
     </Modal>
@@ -411,19 +419,32 @@ function PagBtn({ children, onClick, disabled = false, active = false }: { child
 
 /* ─── Main Page ──────────────────────────────────────────────── */
 export default function ProductsPage() {
-  const [products, setProducts] = useState([...initialProducts]);
-  const [activeTab, setActiveTab] = useState("Tất cả");
-  const [search, setSearch]       = useState("");
-  const [page, setPage]           = useState(1);
-  const [viewing, setViewing]     = useState<Product | null>(null);
-  const [editing, setEditing]     = useState<Product | null>(null);
-  const [deleting, setDeleting]   = useState<Product | null>(null);
-  const [creating, setCreating]   = useState(false);
+  const [products, setProducts]     = useState<Product[]>([]);
+  const [total, setTotal]           = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading]       = useState(true);
+  const [apiError, setApiError]     = useState("");
+  const [categories, setCategoriesList] = useState<Category[]>([]);
+
+  const [activeTab, setActiveTab]   = useState("Tất cả");
+  const [search, setSearch]         = useState("");
+  const [page, setPage]             = useState(1);
+  const [viewing, setViewing]       = useState<Product | null>(null);
+  const [editing, setEditing]       = useState<Product | null>(null);
+  const [deleting, setDeleting]     = useState<Product | null>(null);
+  const [creating, setCreating]     = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const [filterPos, setFilterPos]   = useState({ top: 0, right: 0 });
   const [filters, setFilters]       = useState<Filters>(DEFAULT_FILTERS);
   const filterRef    = useRef<HTMLDivElement>(null);
   const filterBtnRef = useRef<HTMLButtonElement>(null);
+
+  /* ─── Load categories once ─────────────────────────────────── */
+  useEffect(() => {
+    categoriesApi.list()
+      .then(setCategoriesList)
+      .catch(() => { /* non-critical, silently ignore */ });
+  }, []);
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -433,6 +454,35 @@ export default function ProductsPage() {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
+  /* ─── Fetch data ───────────────────────────────────────────── */
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setApiError("");
+    try {
+      const statusParam = activeTab === "Tất cả" ? undefined : activeTab;
+      const typeParam   = filters.types.length === 1 ? filters.types[0] : undefined;
+
+      const result = await productsApi.list({
+        page,
+        limit: PAGE_SIZE,
+        search: search || undefined,
+        status: statusParam,
+        type: typeParam,
+      });
+
+      setProducts(result.data);
+      setTotal(result.meta.total);
+      setTotalPages(result.meta.totalPages);
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : "Lỗi tải dữ liệu");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, search, activeTab, filters]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  /* ─── Event handlers ───────────────────────────────────────── */
   const handleToggleFilter = () => {
     if (!showFilter && filterBtnRef.current) {
       const r = filterBtnRef.current.getBoundingClientRect();
@@ -443,37 +493,39 @@ export default function ProductsPage() {
 
   const activeFilterCount = filters.types.length;
 
-  const filtered = products.filter(p => {
-    const tabOk    = activeTab === "Tất cả" || p.status === activeTab;
-    const searchOk = !search || [p.name, p.sku, p.categoryName].some(s => s.toLowerCase().includes(search.toLowerCase()));
-    const typeOk   = filters.types.length === 0 || filters.types.includes(p.type);
-    return tabOk && searchOk && typeOk;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const count      = (s: string) => s === "Tất cả" ? products.length : products.filter(p => p.status === s).length;
-
   const handleTabChange = (tab: string) => { setActiveTab(tab); setPage(1); };
   const handleSearch    = (s: string)   => { setSearch(s); setPage(1); };
 
-  const handleSaveEdit = useCallback((id: string, data: Partial<Product>) => {
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
-  }, []);
+  const handleSaveEdit = useCallback(async (id: string, data: Partial<Product>) => {
+    try {
+      await productsApi.update(id, data as Record<string, unknown>);
+      await fetchData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Lỗi cập nhật sản phẩm");
+    }
+  }, [fetchData]);
 
-  const handleDelete = useCallback((id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
-  }, []);
+  const handleDelete = useCallback(async (id: string) => {
+    try {
+      await productsApi.delete(id);
+      await fetchData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Lỗi xóa sản phẩm");
+    }
+  }, [fetchData]);
 
   return (
     <AdminLayout title="Sản phẩm" subtitle="Quản lý sản phẩm">
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
       <div className="page-content">
 
         <StatsGrid cols={4}>
-          <StatCard label="Tổng sản phẩm" value={products.length} change={6.3} changeLabel="so với tháng trước" icon="package" color="blue" />
-          <StatCard label="Đang bán" value={count("Đang bán")} change={4} changeLabel="so với tháng trước" icon="package" color="green" />
-          <StatCard label="Hết hàng" value={count("Hết hàng")} change={-1} changeLabel="so với tháng trước" icon="alert" color="rose" />
-          <StatCard label="Tạm ngưng" value={count("Tạm ngưng")} change={0} changeLabel="so với tháng trước" icon="package" color="amber" />
+          <StatCard label="Tổng sản phẩm" value={total} change={6.3} changeLabel="so với tháng trước" icon="package" color="blue" />
+          <StatCard label="Đang bán" value={products.filter(p => p.status === "Đang bán").length} change={4} changeLabel="so với tháng trước" icon="package" color="green" />
+          <StatCard label="Hết hàng" value={products.filter(p => p.status === "Hết hàng").length} change={-1} changeLabel="so với tháng trước" icon="alert" color="rose" />
+          <StatCard label="Tạm ngưng" value={products.filter(p => p.status === "Tạm ngưng").length} change={0} changeLabel="so với tháng trước" icon="package" color="amber" />
         </StatsGrid>
 
         {/* Toolbar + Tabs */}
@@ -489,7 +541,12 @@ export default function ProductsPage() {
                 {activeFilterCount > 0 && <span style={{ background: "#3b82f6", color: "#fff", borderRadius: 99, fontSize: 10, fontWeight: 700, padding: "1px 6px", lineHeight: 1.6 }}>{activeFilterCount}</span>}
               </button>
             </div>
-            <Button variant="secondary" size="sm" icon={<Download size={13} />}>Excel</Button>
+            <Button
+              variant="secondary" size="sm" icon={<Download size={13} />}
+              onClick={() => window.open(productsApi.exportUrl())}
+            >
+              Excel
+            </Button>
             <Button variant="primary" size="sm" icon={<Plus size={13} />} onClick={() => setCreating(true)}>Thêm sản phẩm</Button>
           </div>
 
@@ -497,7 +554,9 @@ export default function ProductsPage() {
             {TABS.map(tab => (
               <button key={tab} onClick={() => handleTabChange(tab)} className={`tab-btn ${activeTab === tab ? "tab-btn-active" : "tab-btn-inactive"}`}>
                 {tab}
-                <span className={`tab-count ${activeTab === tab ? "tab-count-active" : "tab-count-inactive"}`}>{count(tab)}</span>
+                <span className={`tab-count ${activeTab === tab ? "tab-count-active" : "tab-count-inactive"}`}>
+                  {tab === "Tất cả" ? total : products.filter(p => p.status === tab).length}
+                </span>
               </button>
             ))}
           </div>
@@ -513,7 +572,13 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {pageItems.map(product => (
+              {loading ? (
+                <tr>
+                  <td colSpan={9} style={{ textAlign: "center", padding: 40, color: "#475569" }}>
+                    <span style={{ display: "inline-block", width: 20, height: 20, border: "2px solid #334155", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                  </td>
+                </tr>
+              ) : products.map(product => (
                 <tr key={product.id} onClick={() => setViewing(product)} style={{ cursor: "pointer" }}>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -544,10 +609,17 @@ export default function ProductsPage() {
               ))}
             </tbody>
           </table>
-          {filtered.length === 0 && (
+
+          {!loading && products.length === 0 && (
             <div className="empty-state">
               <span style={{ fontSize: 36 }}>📦</span>
               <div style={{ color: "#475569", fontSize: 13 }}>Không tìm thấy sản phẩm</div>
+            </div>
+          )}
+
+          {apiError && (
+            <div style={{ padding: "12px 16px", color: "#ef4444", fontSize: 12, borderTop: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.05)" }}>
+              {apiError}
             </div>
           )}
         </div>
@@ -555,7 +627,7 @@ export default function ProductsPage() {
         {/* Pagination */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 12, color: "#475569" }}>
-            {filtered.length === 0 ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)}`} / {filtered.length} sản phẩm
+            {total === 0 ? "0" : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)}`} / {total} sản phẩm
           </span>
           <div style={{ display: "flex", gap: 4 }}>
             <PagBtn onClick={() => setPage(p => p - 1)} disabled={page === 1}><ChevronLeft size={14} /></PagBtn>
@@ -575,7 +647,13 @@ export default function ProductsPage() {
       )}
 
       {/* Modals */}
-      {creating && <CreateProductModal onCreate={p => { setProducts(prev => [p, ...prev]); setPage(1); }} onClose={() => setCreating(false)} />}
+      {creating && (
+        <CreateProductModal
+          categories={categories}
+          onCreate={() => { fetchData(); setPage(1); }}
+          onClose={() => setCreating(false)}
+        />
+      )}
       {viewing && <ProductDetailModal product={viewing} onClose={() => setViewing(null)} onEdit={() => { setEditing(viewing); setViewing(null); }} />}
       {editing && <ProductEditModal product={editing} onSave={handleSaveEdit} onClose={() => setEditing(null)} />}
       {deleting && <DeleteModal product={deleting} onConfirm={() => handleDelete(deleting.id)} onClose={() => setDeleting(null)} />}
