@@ -456,7 +456,7 @@ export default function CategoriesPage() {
             </div>
           ) : (
             <>
-              <table className="admin-table">
+              <div className="table-wrap"><table className="admin-table">
                 <thead>
                   <tr>
                     <th>Danh mục</th><th>Slug</th><th>Số sản phẩm</th><th>Trạng thái</th><th>Thao tác</th>
@@ -504,7 +504,7 @@ export default function CategoriesPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
               {filtered.length === 0 && (
                 <div className="empty-state">
                   <span style={{ fontSize: 36 }}>🗂️</span>

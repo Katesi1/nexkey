@@ -553,7 +553,7 @@ export default function SuppliersPage() {
             </div>
           ) : (
             <>
-              <table className="admin-table">
+              <div className="table-wrap"><table className="admin-table">
                 <thead>
                   <tr>
                     <th>Công ty</th><th>Mã số thuế</th><th>Người liên hệ</th>
@@ -597,7 +597,7 @@ export default function SuppliersPage() {
                     );
                   })}
                 </tbody>
-              </table>
+              </table></div>
               {filtered.length === 0 && (
                 <div className="empty-state">
                   <span style={{ fontSize: 36 }}>🏢</span>

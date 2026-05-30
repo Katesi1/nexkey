@@ -11,11 +11,13 @@ export const PRODUCT_CATEGORY_ICONS: Record<
   ProductCategory,
   ProductIconComponent | ProductIconComponent[]
 > = {
-  windows: Microsoft,
-  office: Microsoft,
-  youtube: YouTube,
+  windows:      Microsoft,
+  office:       Microsoft,
+  youtube:      YouTube,
   "google-one": Google,
-  combo: [YouTube, Google],
+  combo:        [YouTube, Google],
+  subscription: YouTube,
+  security:     Microsoft,
 };
 
 export function ProductCategoryIcon({

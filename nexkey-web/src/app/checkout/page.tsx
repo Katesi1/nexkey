@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatVnd } from "@/lib/currency";
-import { getProductById } from "@/lib/catalog";
+import { getProductById, cacheProducts, getCachedProducts } from "@/lib/catalog";
+import { fetchPublicProducts } from "@/lib/api";
+import { mapApiProduct } from "@/lib/mappers";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useStore } from "@/store/useStore";
@@ -17,24 +19,36 @@ export default function CheckoutPage() {
     cartSubtotal,
     cartDiscount,
     cartTotal,
-    createOrder,
-    markOrderPaidAndDeliveredMock,
+    placeOrder,
     user,
   } = useStore();
 
+  const [ready, setReady] = useState(getCachedProducts().length > 0);
+
+  useEffect(() => {
+    if (getCachedProducts().length > 0) { setReady(true); return; }
+    fetchPublicProducts()
+      .then(api => {
+        cacheProducts(api.map(p => mapApiProduct(p, api)));
+        setReady(true);
+      })
+      .catch(() => setReady(true));
+  }, []);
+
   const lines = useMemo(
-    () =>
-      cart
-        .map((l) => ({ ...l, product: getProductById(l.productId) }))
-        .filter((l) => l.product),
-    [cart],
+    () => ready
+      ? cart.map((l) => ({ ...l, product: getProductById(l.productId) })).filter((l) => l.product)
+      : [],
+    [cart, ready],
   );
 
   const [fullName, setFullName] = useState(user?.fullName ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [method, setMethod] = useState<PaymentMethod>("vietqr");
-  const [note, setNote] = useState("");
+  const [note, setNote]     = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState<string | null>(null);
 
   return (
     <main className="container-page py-8">
@@ -195,19 +209,36 @@ export default function CheckoutPage() {
                 thị tại trang đơn hàng.
               </div>
 
+              {error && (
+                <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  {error}
+                </div>
+              )}
               <div className="mt-5 space-y-2">
                 <Button
                   className="w-full"
-                  onClick={() => {
-                    const order = createOrder({
-                      customer: { fullName, email, phone },
-                      paymentMethod: method,
-                    });
-                    markOrderPaidAndDeliveredMock(order.id);
-                    router.push(`/order-success?orderId=${encodeURIComponent(order.id)}`);
+                  disabled={loading || !fullName || !email}
+                  onClick={async () => {
+                    if (!fullName.trim() || !email.trim()) {
+                      setError("Vui lòng điền họ tên và email.");
+                      return;
+                    }
+                    setLoading(true);
+                    setError(null);
+                    try {
+                      const order = await placeOrder({
+                        customer: { fullName, email, phone },
+                        paymentMethod: method,
+                        note: note || undefined,
+                      });
+                      router.push(`/order-success?orderId=${encodeURIComponent(order.id)}`);
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : "Đặt hàng thất bại. Vui lòng thử lại.");
+                      setLoading(false);
+                    }
                   }}
                 >
-                  Xác nhận thanh toán
+                  {loading ? "Đang xử lý…" : "Xác nhận thanh toán"}
                 </Button>
                 <Button href="/cart" variant="outline" className="w-full">
                   Quay lại giỏ hàng

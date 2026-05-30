@@ -74,13 +74,13 @@ export default function DashboardPage() {
           <StatCard label="Sản phẩm"       value={stats.totalProducts}  change={0} changeLabel="sản phẩm"   icon="package" color="amber"  />
         </StatsGrid>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 330px 260px", gap: 16 }}>
+        <div className="resp-grid-charts">
           <RevenueChart />
           <OrdersDonutChart stats={orderStats} />
           <TopProducts products={topProducts} />
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16, alignItems: "start" }}>
+        <div className="resp-grid-dash-bottom">
           <RecentOrders />
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <PaymentStats data={payStats} />

@@ -42,7 +42,7 @@ body {
   border: 1px solid rgba(30, 42, 80, 0.8);
   border-radius: 14px;
   position: relative;
-  overflow: hidden;
+  overflow: clip;
 }
 
 .glass-card-hover {
@@ -422,6 +422,46 @@ textarea.admin-input { resize: vertical; }
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 12px; padding: 64px 24px; text-align: center;
 }
+
+/* --- Responsive Grid System --- */
+.resp-grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.resp-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.resp-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.resp-grid-sidebar { display: grid; grid-template-columns: 1fr 300px; gap: 16px; align-items: start; }
+.resp-grid-charts { display: grid; grid-template-columns: 1fr 330px 260px; gap: 16px; }
+.resp-grid-dash-bottom { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start; }
+.resp-grid-profile { display: grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: start; }
+/* --- Table Scroll Wrapper --- */
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* --- Sidebar Overlay (mobile) --- */
+.sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 49; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+/* --- Breakpoints --- */
+@media (max-width: 1200px) {
+  .resp-grid-charts { grid-template-columns: 1fr 300px; }
+  .resp-grid-charts > *:last-child { display: none; }
+}
+@media (max-width: 1024px) {
+  .resp-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .resp-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .resp-grid-charts { grid-template-columns: 1fr; }
+  .resp-grid-charts > *:last-child { display: block; }
+  .resp-grid-dash-bottom { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .resp-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .resp-grid-3, .resp-grid-2, .resp-grid-sidebar, .resp-grid-charts, .resp-grid-dash-bottom, .resp-grid-profile { grid-template-columns: 1fr; gap: 10px; }
+  .page-content { padding: 12px; gap: 12px; }
+  .page-header { gap: 10px; }
+  .topbar-search { display: none !important; }
+  .topbar-create { display: none !important; }
+}
+@media (max-width: 480px) {
+  .resp-grid-4 { grid-template-columns: 1fr; }
+  .page-content { padding: 8px; gap: 8px; }
+}
+/* --- Topbar hamburger: hidden on desktop --- */
+.topbar-hamburger { display: none !important; }
+@media (max-width: 768px) { .topbar-hamburger { display: flex !important; } }
 
 /* - Status dot pulse - */
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }

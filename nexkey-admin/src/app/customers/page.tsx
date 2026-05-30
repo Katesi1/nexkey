@@ -498,7 +498,7 @@ export default function CustomersPage() {
 
         {/* Table */}
         <div className="glass-card" style={{ overflowX: "auto" }}>
-          <table className="admin-table">
+          <div className="table-wrap"><table className="admin-table">
             <thead>
               <tr>
                 <th>Khách hàng</th><th>Email</th><th>Điện thoại</th>
@@ -543,7 +543,7 @@ export default function CustomersPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
           {!loading && customers.length === 0 && (
             <div className="empty-state">
               <span style={{ fontSize: 36 }}>👤</span>

@@ -85,7 +85,7 @@ export default function ProfilePage() {
   return (
     <AdminLayout title="Hồ sơ cá nhân" subtitle="Thông tin tài khoản quản trị viên">
       <div className="page-content">
-        <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 20, alignItems: "start" }}>
+        <div className="resp-grid-profile">
 
           {/* Left — Avatar card */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

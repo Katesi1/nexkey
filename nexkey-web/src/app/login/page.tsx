@@ -10,7 +10,7 @@ import { useStore } from "@/store/useStore";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { loginMock, loginWithGoogleMock } = useStore();
+  const { setUser } = useStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -84,25 +84,14 @@ export default function LoginPage() {
             <div className="mt-5 space-y-2">
               <Button
                 className="w-full"
+                disabled={!email}
                 onClick={() => {
-                  loginMock(email || "demo@nexkey.vn", password);
+                  if (!email) return;
+                  setUser({ id: `guest_${email}`, fullName: email.split("@")[0], email, phone: "" });
                   router.push("/account");
                 }}
               >
-                Đăng nhập
-              </Button>
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={() => {
-                  loginWithGoogleMock();
-                  router.push("/account");
-                }}
-              >
-                <span className="inline-flex items-center justify-center gap-2">
-                  <Google size={18} aria-hidden />
-                  Đăng nhập bằng Google (mock)
-                </span>
+                Tiếp tục với Email
               </Button>
             </div>
 

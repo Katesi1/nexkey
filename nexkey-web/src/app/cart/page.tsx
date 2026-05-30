@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
-import { getProductById } from "@/lib/catalog";
+import { getProductById, cacheProducts, getCachedProducts } from "@/lib/catalog";
+import { fetchPublicProducts } from "@/lib/api";
+import { mapApiProduct } from "@/lib/mappers";
 import { formatVnd } from "@/lib/currency";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -21,11 +23,25 @@ export default function CartPage() {
     setCouponCode,
   } = useStore();
 
+  const [ready, setReady] = useState(getCachedProducts().length > 0);
+
+  // Nếu cache chưa có (user vào thẳng /cart), fetch từ API
+  useEffect(() => {
+    if (getCachedProducts().length > 0) { setReady(true); return; }
+    fetchPublicProducts()
+      .then(api => {
+        cacheProducts(api.map(p => mapApiProduct(p, api)));
+        setReady(true);
+      })
+      .catch(() => setReady(true));
+  }, []);
+
   const lines = useMemo(() => {
+    if (!ready) return [];
     return cart
       .map((l) => ({ ...l, product: getProductById(l.productId) }))
       .filter((l) => l.product);
-  }, [cart]);
+  }, [cart, ready]);
 
   return (
     <main className="container-page py-7">

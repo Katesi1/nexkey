@@ -117,7 +117,7 @@ function GeneralTab({ s, set }: { s: GeneralSettings; set: React.Dispatch<React.
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <SectionCard title="Thông tin cửa hàng" description="Cấu hình thông tin cơ bản của website">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div className="resp-grid-2">
           <Field label="Tên cửa hàng" required><input className="admin-input" value={s.shopName} onChange={e => upd("shopName", e.target.value)} /></Field>
           <Field label="Tên miền" required><input className="admin-input" value={s.domain} onChange={e => upd("domain", e.target.value)} /></Field>
           <Field label="Email liên hệ" required>{iconInput(<Mail size={13} />, <input className="admin-input" style={{ paddingLeft: 30 }} value={s.email} onChange={e => upd("email", e.target.value)} />)}</Field>
@@ -151,7 +151,7 @@ function SeoTab({ s, set }: { s: SeoSettings; set: React.Dispatch<React.SetState
           <textarea className="admin-input" rows={3} style={{ resize: "vertical" }} value={s.description} onChange={e => upd("description", e.target.value)} />
         </Field>
         <Field label="Meta Keywords"><input className="admin-input" value={s.keywords} onChange={e => upd("keywords", e.target.value)} /></Field>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div className="resp-grid-2">
           <Field label="Google Analytics ID"><input className="admin-input" placeholder="G-XXXXXXXXXX" value={s.gaId} onChange={e => upd("gaId", e.target.value)} /></Field>
           <Field label="Google Tag Manager ID"><input className="admin-input" placeholder="GTM-XXXXXXX" value={s.gtmId} onChange={e => upd("gtmId", e.target.value)} /></Field>
         </div>
@@ -175,7 +175,7 @@ function PaymentTab() {
         <SectionCard key={pm.id} title={`${pm.icon} ${pm.name}`} description={pm.desc}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <ToggleRow label={`Kích hoạt ${pm.name}`} hint="Bật/tắt phương thức thanh toán này" checked={(toggles as Record<string,boolean>)[pm.id]} onChange={() => setToggles(p => ({ ...p, [pm.id]: !p[pm.id as keyof typeof p] }))} />
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div className="resp-grid-2">
               <Field label={`${pm.name} Merchant ID`}><input className="admin-input" placeholder={`Nhập ${pm.name} Merchant ID`} value={(keys as Record<string,string>)[`${pm.id}_id`]} onChange={e => setKeys(p => ({ ...p, [`${pm.id}_id`]: e.target.value }))} /></Field>
               <Field label={`${pm.name} Secret Key`}><input className="admin-input" type="password" placeholder="••••••••••••" value={(keys as Record<string,string>)[`${pm.id}_key`]} onChange={e => setKeys(p => ({ ...p, [`${pm.id}_key`]: e.target.value }))} /></Field>
             </div>
@@ -192,7 +192,7 @@ function EmailTab({ s, set, onTest }: { s: EmailSettings; set: React.Dispatch<Re
   return (
     <SectionCard title="Cấu hình SMTP" description="Cấu hình máy chủ gửi email">
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div className="resp-grid-2">
           <Field label="SMTP Host" required><input className="admin-input" value={s.host} onChange={e => upd("host", e.target.value)} /></Field>
           <Field label="SMTP Port" required><input className="admin-input" value={s.port} onChange={e => upd("port", e.target.value)} /></Field>
           <Field label="Username" required><input className="admin-input" value={s.username} onChange={e => upd("username", e.target.value)} /></Field>
@@ -264,7 +264,7 @@ function ThemeTab({ s, set }: { s: ThemeSettings; set: React.Dispatch<React.SetS
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <SectionCard title="Màu sắc thương hiệu" description="Tùy chỉnh bảng màu giao diện">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20 }}>
+        <div className="resp-grid-2">
           <Field label="Màu chủ đạo">
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <input type="color" value={s.primary} onChange={e => upd("primary", e.target.value)} style={{ width: 36, height: 36, border: "1px solid rgba(30,42,80,0.8)", borderRadius: 8, cursor: "pointer", background: "none", padding: 2 }} />

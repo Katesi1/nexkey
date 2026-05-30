@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bell, Search, ChevronDown, Settings, LogOut, User, Plus, Command, CheckCheck } from "lucide-react";
+import { Bell, Search, ChevronDown, Settings, LogOut, User, Plus, Command, CheckCheck, Menu } from "lucide-react";
 import { useNotifications } from "@/store/NotificationContext";
 import { useAuth } from "@/store/AuthContext";
 import { useSidebar, SIDEBAR_W } from "@/store/SidebarContext";
@@ -22,7 +22,7 @@ type TopbarProps = { title: string; subtitle?: string };
 
 export function Topbar({ title, subtitle }: TopbarProps) {
   const { user, logout } = useAuth();
-  const { collapsed } = useSidebar();
+  const { collapsed, toggle } = useSidebar();
   const sidebarLeft = collapsed ? SIDEBAR_W.collapsed : SIDEBAR_W.open;
   const [showNotif, setShowNotif]     = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -41,6 +41,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
       )}
 
       <header style={{ position: "fixed", top: 0, right: 0, left: sidebarLeft, height: 60, zIndex: 40, transition: "left 0.22s ease", display: "flex", alignItems: "center", gap: 12, padding: "0 20px", background: "rgba(6,10,21,0.92)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid rgba(30,42,80,0.7)", boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
+        <button onClick={toggle} className="topbar-hamburger" style={{ width: 34, height: 34, borderRadius: 8, background: "rgba(17,24,48,0.9)", border: "1px solid rgba(30,42,80,0.9)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#64748b", flexShrink: 0 }}><Menu size={16} /></button>
 
         {/* Page title */}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -51,7 +52,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
         </div>
 
         {/* Search */}
-        <div style={{ position: "relative", width: 260 }}>
+        <div className="topbar-search" style={{ position: "relative", width: 260 }}>
           <Search size={13} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#475569", pointerEvents: "none" }} />
           <input type="text" placeholder="Tìm kiếm..." className="admin-input" style={{ paddingLeft: 30, paddingTop: 7, paddingBottom: 7, fontSize: 12.5 }} />
           <div style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", display: "flex", alignItems: "center", gap: 2, background: "rgba(30,42,80,0.5)", borderRadius: 5, padding: "1px 5px" }}>
@@ -61,7 +62,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
         </div>
 
         {/* Quick create */}
-        <button className="btn btn-primary btn-sm" style={{ gap: 5, padding: "6px 12px" }}>
+        <button className="btn btn-primary btn-sm topbar-create" style={{ gap: 5, padding: "6px 12px" }}>
           <Plus size={13} />Tạo mới
         </button>
 

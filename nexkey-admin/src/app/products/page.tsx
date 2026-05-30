@@ -583,7 +583,7 @@ export default function ProductsPage() {
 
         {/* Table */}
         <div className="glass-card" style={{ overflowX: "auto" }}>
-          <table className="admin-table">
+          <div className="table-wrap"><table className="admin-table">
             <thead>
               <tr>
                 <th>Sản phẩm</th><th>SKU</th><th>Danh mục</th><th>Loại</th>
@@ -627,7 +627,7 @@ export default function ProductsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
 
           {!loading && products.length === 0 && (
             <div className="empty-state">

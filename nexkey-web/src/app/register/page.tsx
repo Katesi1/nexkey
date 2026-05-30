@@ -9,7 +9,7 @@ import { useStore } from "@/store/useStore";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { loginMock } = useStore();
+  const { setUser } = useStore();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -120,12 +120,14 @@ export default function RegisterPage() {
             <div className="mt-5 space-y-2">
               <Button
                 className="w-full"
+                disabled={!fullName || !email}
                 onClick={() => {
-                  loginMock(email || "demo@nexkey.vn", password);
+                  if (!fullName || !email) return;
+                  setUser({ id: `guest_${email}`, fullName, email, phone });
                   router.push("/account");
                 }}
               >
-                Tạo tài khoản (mock)
+                Tạo tài khoản
               </Button>
               <Button href="/login" variant="outline" className="w-full">
                 Đã có tài khoản? Đăng nhập

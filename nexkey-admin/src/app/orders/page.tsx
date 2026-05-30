@@ -739,7 +739,7 @@ export default function OrdersPage() {
 
         {/* Table */}
         <div className="glass-card" style={{ overflowX: "auto" }}>
-          <table className="admin-table">
+          <div className="table-wrap"><table className="admin-table">
             <thead>
               <tr>
                 <th>Mã đơn</th><th>Khách hàng</th><th>Sản phẩm</th>
@@ -806,7 +806,7 @@ export default function OrdersPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
 
           {!loading && orders.length === 0 && (
             <div className="empty-state">

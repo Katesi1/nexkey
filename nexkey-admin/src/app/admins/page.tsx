@@ -617,7 +617,7 @@ export default function AdminsPage() {
         </div>
 
         <div className="glass-card" style={{ overflowX: "auto" }}>
-          <table className="admin-table">
+          <div className="table-wrap"><table className="admin-table">
             <thead>
               <tr>
                 <th>Tài khoản</th>
@@ -673,7 +673,7 @@ export default function AdminsPage() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         </div>
 
         <div style={{ fontSize: 12, color: "#334155" }}>

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Models.DTOs.Categories;
 using NexKey.Api.Interfaces;
 
@@ -11,6 +12,7 @@ public class CategoriesController : BaseController
 
     public CategoriesController(ICategoryService service) => _service = service;
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetList([FromQuery] CategoryQueryParams query) =>
         Ok(await _service.GetListAsync(query));

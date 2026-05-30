@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Models.DTOs.Products;
 using NexKey.Api.Interfaces;
 
@@ -11,6 +12,7 @@ public class ProductsController : BaseController
 
     public ProductsController(IProductService service) => _service = service;
 
+    [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetList([FromQuery] ProductQueryParams query)
     {
@@ -25,6 +27,7 @@ public class ProductsController : BaseController
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "products.xlsx");
     }
 
+    [AllowAnonymous]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id) => Ok(await _service.GetByIdAsync(id));
 

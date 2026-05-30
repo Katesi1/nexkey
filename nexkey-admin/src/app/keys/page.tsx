@@ -607,7 +607,7 @@ export default function KeysPage() {
 
         {/* Table */}
         <div className="glass-card" style={{ overflowX: "auto" }}>
-          <table className="admin-table">
+          <div className="table-wrap"><table className="admin-table">
             <thead>
               <tr>
                 <th>License Key</th><th>Sản phẩm</th><th>Khách hàng</th>
@@ -656,7 +656,7 @@ export default function KeysPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
           {!loading && keys.length === 0 && (
             <div className="empty-state">
               <KeyRound size={36} style={{ color: "#1e3a5f" }} />

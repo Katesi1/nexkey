@@ -3,7 +3,9 @@ export type ProductCategory =
   | "office"
   | "youtube"
   | "google-one"
-  | "combo";
+  | "combo"
+  | "subscription"
+  | "security";
 
 export type ProductType = "Retail" | "Subscription" | "Combo";
 
@@ -78,5 +80,21 @@ export type User = {
   fullName: string;
   email: string;
   phone?: string;
+};
+
+// API Order status → display
+export const ORDER_STATUS_LABEL: Record<number, string> = {
+  1: "Đang xử lý",
+  2: "Hoàn thành",
+  3: "Đã hủy",
+  4: "Hoàn tiền",
+  5: "Chờ thanh toán",
+};
+
+export const PAYMENT_METHOD_WEB_LABEL: Record<string, string> = {
+  bank:    "Chuyển khoản",
+  vietqr:  "VietQR",
+  momo:    "MoMo",
+  vnpay:   "VNPay",
 };
 

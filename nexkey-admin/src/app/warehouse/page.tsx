@@ -499,7 +499,7 @@ export default function WarehousePage() {
 
         {/* Table */}
         <div className="glass-card" style={{ overflowX: "auto" }}>
-          <table className="admin-table">
+          <div className="table-wrap"><table className="admin-table">
             <thead>
               <tr>
                 <th>Sản phẩm</th><th>SKU</th><th>Kho</th><th>Số lượng</th>
@@ -541,7 +541,7 @@ export default function WarehousePage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
           {!loading && items.length === 0 && (
             <div className="empty-state">
               <span style={{ fontSize: 36 }}>📦</span>

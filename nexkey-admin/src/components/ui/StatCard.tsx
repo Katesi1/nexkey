@@ -127,8 +127,9 @@ export function StatCard({
 type StatsGridProps = { children: React.ReactNode; cols?: 2 | 3 | 4 | 5 };
 
 export function StatsGrid({ children, cols = 4 }: StatsGridProps) {
+  const GRID_CLASS: Record<number, string> = { 2: "resp-grid-2", 3: "resp-grid-3", 4: "resp-grid-4", 5: "resp-grid-4" };
   return (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gap: 16 }}>
+    <div className={GRID_CLASS[cols] ?? "resp-grid-4"}>
       {children}
     </div>
   );
