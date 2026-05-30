@@ -6,6 +6,7 @@ import { StatCard, StatsGrid } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/Button";
 import { adminsApi, rolesApi } from "@/lib/api";
 import type { Admin as ApiAdmin, Role as ApiRole } from "@/lib/types";
+import { AdminStatus } from "@/lib/types";
 import {
   Plus, X, ShieldCheck, ShieldAlert, Shield, Key,
   Pencil, Trash2, CheckCircle, AlertCircle, Users,
@@ -28,7 +29,7 @@ type Admin = {
   email: string;
   roleId: string;
   roleName: string;
-  status: "HoatDong" | "BiKhoa";
+  status: AdminStatus;
   lastLogin?: string;
 };
 
@@ -590,8 +591,8 @@ export default function AdminsPage() {
                       {roleAdmins.map(a => (
                         <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 8px 3px 4px", borderRadius: 99, background: "rgba(30,42,80,0.5)", border: "1px solid rgba(30,42,80,0.8)" }}>
                           <div style={{ width: 20, height: 20, borderRadius: "50%", background: `${role.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: role.color }}>{a.name[0]}</div>
-                          <span style={{ fontSize: 11, color: a.status === "BiKhoa" ? "#475569" : "#94a3b8" }}>{a.name.split(" ").slice(-1)[0]}</span>
-                          {a.status === "BiKhoa" && <span style={{ fontSize: 9, color: "#ef4444" }}>●</span>}
+                          <span style={{ fontSize: 11, color: a.status === AdminStatus.BiKhoa ? "#475569" : "#94a3b8" }}>{a.name.split(" ").slice(-1)[0]}</span>
+                          {a.status === AdminStatus.BiKhoa && <span style={{ fontSize: 9, color: "#ef4444" }}>●</span>}
                         </div>
                       ))}
                     </div>
@@ -630,7 +631,7 @@ export default function AdminsPage() {
             <tbody>
               {admins.map(admin => {
                 const role = roles.find(r => r.id === admin.roleId);
-                const isLocked = admin.status === "BiKhoa";
+                const isLocked = admin.status === AdminStatus.BiKhoa;
                 const avatarBg = role ? `${role.color}30` : "rgba(71,85,105,0.5)";
                 return (
                   <tr key={admin.id} style={{ opacity: isLocked ? 0.6 : 1 }}>

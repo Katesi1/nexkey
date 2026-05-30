@@ -7,9 +7,10 @@ import { OrderStatusBadge } from "@/components/ui/Badge";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { Order } from "@/lib/types";
+import { PAYMENT_METHOD_LABEL } from "@/lib/types";
 
-const PAYMENT_ICONS: Record<string, string> = {
-  VNPay: "💳", MoMo: "🎀", Banking: "🏦", Card: "💰", "Tiền mặt": "💵",
+const PAYMENT_ICONS: Record<number, string> = {
+  1: "💳", 2: "🎀", 3: "🏦", 4: "💰", 5: "💵",
 };
 
 const PAGE_SIZE = 10;
@@ -99,7 +100,7 @@ export function RecentOrders() {
               <td style={{ padding: "12px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <span style={{ fontSize: 13 }}>{PAYMENT_ICONS[order.paymentMethod] ?? "💳"}</span>
-                  <span style={{ fontSize: 11, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{order.paymentMethod}</span>
+                  <span style={{ fontSize: 11, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{PAYMENT_METHOD_LABEL[order.paymentMethod]}</span>
                 </div>
               </td>
 

@@ -8,7 +8,8 @@ import { Button, ActionButtons } from "@/components/ui/Button";
 import { warehouseApi } from "@/lib/api";
 import type { ApiMeta } from "@/lib/api";
 import { formatVND } from "@/lib/utils";
-import type { WarehouseItem, StockStatus } from "@/lib/types";
+import type { WarehouseItem } from "@/lib/types";
+import { WarehouseStatus, WAREHOUSE_STATUS_LABEL } from "@/lib/types";
 import {
   Search, Filter, Download, Plus, X,
   Package, DollarSign, Warehouse, TrendingDown,
@@ -19,16 +20,19 @@ import {
 const WAREHOUSES  = ["Tất cả", "Kho chính", "Kho chi nhánh", "Kho đối tác"] as const;
 const WAREHOUSE_LIST = ["Kho chính", "Kho chi nhánh", "Kho đối tác"];
 const PAGE_SIZE   = 5;
-const STOCK_STATUSES: StockStatus[] = ["Còn hàng", "Sắp hết", "Hết hàng", "Đang nhập"];
+const STOCK_STATUSES: WarehouseStatus[] = [
+  WarehouseStatus.ConHang, WarehouseStatus.SapHet,
+  WarehouseStatus.HetHang, WarehouseStatus.DangNhap,
+];
 
-type Filters = { statuses: StockStatus[] };
+type Filters = { statuses: WarehouseStatus[] };
 const DEFAULT_FILTERS: Filters = { statuses: [] };
 
 const stockColor = (qty: number) =>
   qty === 0 ? "#ef4444" : qty < 20 ? "#f59e0b" : "#34d399";
 
-const autoStatus = (qty: number): StockStatus =>
-  qty === 0 ? "Hết hàng" : qty < 20 ? "Sắp hết" : "Còn hàng";
+const autoStatus = (qty: number): WarehouseStatus =>
+  qty === 0 ? WarehouseStatus.HetHang : qty < 20 ? WarehouseStatus.SapHet : WarehouseStatus.ConHang;
 
 /* ─── Modal wrapper ──────────────────────────────────────────── */
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
@@ -331,7 +335,7 @@ function FilterDropdown({ filters, onChange, onClear, onClose, top, right }: {
   filters: Filters; onChange: (f: Filters) => void;
   onClear: () => void; onClose: () => void; top: number; right: number;
 }) {
-  const toggle = (s: StockStatus) => {
+  const toggle = (s: WarehouseStatus) => {
     const next = filters.statuses.includes(s) ? filters.statuses.filter(x => x !== s) : [...filters.statuses, s];
     onChange({ ...filters, statuses: next });
   };
@@ -342,7 +346,7 @@ function FilterDropdown({ filters, onChange, onClear, onClose, top, right }: {
         {STOCK_STATUSES.map(s => (
           <label key={s} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
             <input type="checkbox" checked={filters.statuses.includes(s)} onChange={() => toggle(s)} style={{ accentColor: "#3b82f6", width: 14, height: 14, cursor: "pointer" }} />
-            <span style={{ fontSize: 12, color: "#cbd5e1" }}>{s}</span>
+            <span style={{ fontSize: 12, color: "#cbd5e1" }}>{WAREHOUSE_STATUS_LABEL[s]}</span>
           </label>
         ))}
       </div>
@@ -387,7 +391,7 @@ export default function WarehousePage() {
     setApiError(null);
     try {
       const warehouseParam = activeTab !== "Tất cả" ? activeTab : undefined;
-      const statusParam = filters.statuses.length === 1 ? filters.statuses[0] : undefined;
+      const statusParam: WarehouseStatus | undefined = filters.statuses.length === 1 ? filters.statuses[0] : undefined;
       const [result, summaryData] = await Promise.all([
         warehouseApi.list({
           page,
@@ -432,8 +436,8 @@ export default function WarehousePage() {
   const pageItems  = items;
   const totalValue = summary?.totalValue ?? items.reduce((s, i) => s + i.inventoryValue, 0);
   const totalQty   = summary?.totalQuantity ?? items.reduce((s, i) => s + i.quantity, 0);
-  const lowStock   = items.filter(i => i.status === "Sắp hết").length;
-  const outOfStock = items.filter(i => i.status === "Hết hàng").length;
+  const lowStock   = items.filter(i => i.status === WarehouseStatus.SapHet).length;
+  const outOfStock = items.filter(i => i.status === WarehouseStatus.HetHang).length;
 
   const handleAdjust = useCallback(async (id: string, delta: number, costPrice?: number) => {
     try {
@@ -458,7 +462,7 @@ export default function WarehousePage() {
           <StatCard label="Tổng tồn kho" value={totalQty} suffix=" key" change={5} changeLabel="so với tháng trước" icon="warehouse" color="green" />
           <StatCard label="Sắp hết hàng" value={lowStock} change={-1} changeLabel="so với tháng trước" icon="alert" color="amber" />
           <StatCard label="Hết hàng" value={outOfStock} change={2} changeLabel="so với tháng trước" icon="alert" color="rose" />
-          <StatCard label="Đang nhập" value={items.filter(i => i.status === "Đang nhập").length} changeLabel="so với tháng trước" icon="warehouse" color="cyan" />
+          <StatCard label="Đang nhập" value={items.filter(i => i.status === WarehouseStatus.DangNhap).length} changeLabel="so với tháng trước" icon="warehouse" color="cyan" />
         </StatsGrid>
         {apiError && (
           <div style={{ textAlign: "center", padding: 16, color: "#ef4444", fontSize: 12 }}>{apiError}</div>

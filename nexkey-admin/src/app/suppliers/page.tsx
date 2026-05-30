@@ -7,7 +7,8 @@ import { SupplierStatusBadge } from "@/components/ui/Badge";
 import { Button, ActionButtons } from "@/components/ui/Button";
 import { suppliersApi } from "@/lib/api";
 import { formatVND } from "@/lib/utils";
-import type { Supplier, SupplierStatus } from "@/lib/types";
+import type { Supplier } from "@/lib/types";
+import { SupplierStatus, SUPPLIER_STATUS_LABEL } from "@/lib/types";
 import {
   Search, Filter, Plus, X, Building2,
   Phone, Mail, Package, AlertCircle,
@@ -17,7 +18,14 @@ import {
 /* ─── Constants ──────────────────────────────────────────────── */
 const TABS = ["Tất cả", "Đang hợp tác", "Chờ duyệt", "Tạm ngưng"] as const;
 const PAGE_SIZE = 5;
-const STATUS_OPTIONS: SupplierStatus[] = ["Đang hợp tác", "Chờ duyệt", "Tạm ngưng"];
+const STATUS_OPTIONS: SupplierStatus[] = [
+  SupplierStatus.DangHopTac, SupplierStatus.ChoDuyet, SupplierStatus.TamNgung,
+];
+const TAB_TO_STATUS: Partial<Record<string, SupplierStatus>> = {
+  "Đang hợp tác": SupplierStatus.DangHopTac,
+  "Chờ duyệt":    SupplierStatus.ChoDuyet,
+  "Tạm ngưng":    SupplierStatus.TamNgung,
+};
 
 const AVATAR_COLORS = [
   "linear-gradient(135deg,#2563eb,#7c3aed)",
@@ -29,10 +37,10 @@ const AVATAR_COLORS = [
   "linear-gradient(135deg,#db2777,#7c3aed)",
 ];
 
-const STATUS_COLORS: Record<SupplierStatus, { color: string; bg: string; glow: string }> = {
-  "Đang hợp tác": { color: "#10b981", bg: "rgba(16,185,129,0.12)", glow: "rgba(16,185,129,0.25)" },
-  "Chờ duyệt":    { color: "#f59e0b", bg: "rgba(245,158,11,0.12)", glow: "rgba(245,158,11,0.25)" },
-  "Tạm ngưng":    { color: "#ef4444", bg: "rgba(239,68,68,0.12)",  glow: "rgba(239,68,68,0.25)" },
+const STATUS_COLORS: Record<number, { color: string; bg: string; glow: string }> = {
+  [SupplierStatus.DangHopTac]: { color: "#10b981", bg: "rgba(16,185,129,0.12)", glow: "rgba(16,185,129,0.25)" },
+  [SupplierStatus.ChoDuyet]:   { color: "#f59e0b", bg: "rgba(245,158,11,0.12)", glow: "rgba(245,158,11,0.25)" },
+  [SupplierStatus.TamNgung]:   { color: "#ef4444", bg: "rgba(239,68,68,0.12)",  glow: "rgba(239,68,68,0.25)" },
 };
 
 type Filters = { statuses: SupplierStatus[]; hasDebt: boolean };
@@ -70,7 +78,7 @@ function SupplierDetailModal({ supplier, idx, onClose, onEdit, onToggleStatus }:
   onEdit: () => void; onToggleStatus: () => void;
 }) {
   const sc = STATUS_COLORS[supplier.status];
-  const isSuspended = supplier.status === "Tạm ngưng";
+  const isSuspended = supplier.status === SupplierStatus.TamNgung;
 
   return (
     <Modal onClose={onClose}>
@@ -89,7 +97,7 @@ function SupplierDetailModal({ supplier, idx, onClose, onEdit, onToggleStatus }:
               <div style={{ marginTop: 8 }}>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 10px", borderRadius: 99, background: sc.bg, color: sc.color, fontSize: 11, fontWeight: 700, boxShadow: `0 0 10px ${sc.glow}` }}>
                   <span style={{ width: 5, height: 5, borderRadius: "50%", background: sc.color, display: "inline-block" }} />
-                  {supplier.status}
+                  {SUPPLIER_STATUS_LABEL[supplier.status]}
                 </span>
               </div>
             </div>
@@ -221,8 +229,8 @@ function SupplierEditModal({ supplier, onSave, onClose }: {
           </div>
           <div>
             <label style={labelStyle}>Trạng thái</label>
-            <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(e.target.value as SupplierStatus)}>
-              {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(Number(e.target.value) as SupplierStatus)}>
+              {STATUS_OPTIONS.map(s => <option key={s} value={s}>{SUPPLIER_STATUS_LABEL[s]}</option>)}
             </select>
           </div>
         </div>
@@ -242,7 +250,7 @@ function CreateSupplierModal({ onCreate, onClose }: { onCreate: (body: Record<st
   const [contactPerson, setContactPerson] = useState("");
   const [email, setEmail]                 = useState("");
   const [phone, setPhone]                 = useState("");
-  const [status, setStatus]               = useState<SupplierStatus>("Chờ duyệt");
+  const [status, setStatus]               = useState<SupplierStatus>(SupplierStatus.ChoDuyet);
   const [errors, setErrors]               = useState<Record<string, string>>({});
 
   const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", borderRadius: 8, fontSize: 13, background: "#060a15", border: "1px solid rgba(30,42,80,0.9)", color: "#e2e8f0", outline: "none", boxSizing: "border-box" };
@@ -294,8 +302,8 @@ function CreateSupplierModal({ onCreate, onClose }: { onCreate: (body: Record<st
                 {field("taxCode", "Mã số thuế", taxCode, setTaxCode, { placeholder: "0101234567", style: { fontFamily: "monospace" } })}
                 <div>
                   <label style={labelStyle}>Trạng thái</label>
-                  <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(e.target.value as SupplierStatus)}>
-                    {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                  <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(Number(e.target.value) as SupplierStatus)}>
+                    {STATUS_OPTIONS.map(s => <option key={s} value={s}>{SUPPLIER_STATUS_LABEL[s]}</option>)}
                   </select>
                 </div>
               </div>
@@ -361,7 +369,7 @@ function FilterDropdown({ filters, onChange, onClear, onClose, top, right }: {
         {STATUS_OPTIONS.map(s => (
           <label key={s} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
             <input type="checkbox" checked={filters.statuses.includes(s)} onChange={() => toggle(s)} style={{ accentColor: "#3b82f6", width: 14, height: 14, cursor: "pointer" }} />
-            <span style={{ fontSize: 12, color: "#cbd5e1" }}>{s}</span>
+            <span style={{ fontSize: 12, color: "#cbd5e1" }}>{SUPPLIER_STATUS_LABEL[s]}</span>
           </label>
         ))}
       </div>
@@ -438,7 +446,7 @@ export default function SuppliersPage() {
   const activeFilterCount = filters.statuses.length + (filters.hasDebt ? 1 : 0);
 
   const filtered = suppliers.filter(s => {
-    const tabOk    = activeTab === "Tất cả" || s.status === activeTab;
+    const tabOk    = activeTab === "Tất cả" || s.status === TAB_TO_STATUS[activeTab];
     const searchOk = !search || [s.companyName, s.taxCode, s.contactPerson].some(str => str.toLowerCase().includes(search.toLowerCase()));
     const statusOk = filters.statuses.length === 0 || filters.statuses.includes(s.status);
     const debtOk   = !filters.hasDebt || s.debt > 0;
@@ -447,7 +455,7 @@ export default function SuppliersPage() {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const count      = (s: string) => s === "Tất cả" ? suppliers.length : suppliers.filter(sup => sup.status === s).length;
+  const count      = (s: string) => s === "Tất cả" ? suppliers.length : suppliers.filter(sup => sup.status === TAB_TO_STATUS[s]).length;
   const totalDebt  = suppliers.reduce((acc, s) => acc + s.debt, 0);
 
   const handleSaveEdit = useCallback(async (id: string, data: Partial<Supplier>) => {
@@ -472,7 +480,7 @@ export default function SuppliersPage() {
   }, [fetchData]);
 
   const handleToggleStatus = useCallback(async (supplier: Supplier) => {
-    const newStatus: SupplierStatus = supplier.status === "Tạm ngưng" ? "Đang hợp tác" : "Tạm ngưng";
+    const newStatus: SupplierStatus = supplier.status === SupplierStatus.TamNgung ? SupplierStatus.DangHopTac : SupplierStatus.TamNgung;
     try {
       await suppliersApi.update(supplier.id, { status: newStatus });
       await fetchData();
@@ -506,8 +514,8 @@ export default function SuppliersPage() {
 
         <StatsGrid cols={4}>
           <StatCard label="Tổng NCC" value={suppliers.length} change={5} changeLabel="so với tháng trước" icon="building" color="blue" />
-          <StatCard label="Đang hợp tác" value={count("Đang hợp tác")} change={1} changeLabel="so với tháng trước" icon="building" color="green" />
-          <StatCard label="Chờ duyệt" value={count("Chờ duyệt")} changeLabel="so với tháng trước" icon="building" color="amber" />
+          <StatCard label="Đang hợp tác" value={suppliers.filter(s => s.status === SupplierStatus.DangHopTac).length} change={1} changeLabel="so với tháng trước" icon="building" color="green" />
+          <StatCard label="Chờ duyệt" value={suppliers.filter(s => s.status === SupplierStatus.ChoDuyet).length} changeLabel="so với tháng trước" icon="building" color="amber" />
           <StatCard label="Tổng công nợ" value={totalDebt} isCurrency change={-8} changeLabel="so với tháng trước" icon="money" color="rose" />
         </StatsGrid>
 

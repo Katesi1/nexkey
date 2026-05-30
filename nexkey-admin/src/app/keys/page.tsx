@@ -8,7 +8,8 @@ import { Button, ActionButtons } from "@/components/ui/Button";
 import { keysApi, productsApi } from "@/lib/api";
 import type { ApiMeta } from "@/lib/api";
 import { formatDate, maskKey } from "@/lib/utils";
-import type { LicenseKey, KeyStatus, Product } from "@/lib/types";
+import type { LicenseKey, Product } from "@/lib/types";
+import { LicenseKeyStatus, LICENSE_KEY_STATUS_LABEL } from "@/lib/types";
 import {
   Search, Filter, Download, Plus, Copy, Zap, X,
   KeyRound, User, Package, Calendar, Eye, EyeOff,
@@ -18,17 +19,27 @@ import {
 /* ─── Constants ──────────────────────────────────────────────── */
 const KEY_TABS = ["Tất cả", "Hoạt động", "Sắp hết hạn", "Đã hết hạn", "Bị khóa", "Chưa kích hoạt"] as const;
 const PAGE_SIZE = 5;
-const ALL_STATUSES: KeyStatus[] = ["Hoạt động", "Sắp hết hạn", "Đã hết hạn", "Bị khóa", "Chưa kích hoạt"];
-
-const STATUS_COLORS: Record<KeyStatus, { color: string; bg: string; glow: string }> = {
-  "Hoạt động":       { color: "#10b981", bg: "rgba(16,185,129,0.12)",  glow: "rgba(16,185,129,0.25)" },
-  "Sắp hết hạn":    { color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  glow: "rgba(245,158,11,0.25)" },
-  "Đã hết hạn":     { color: "#ef4444", bg: "rgba(239,68,68,0.12)",   glow: "rgba(239,68,68,0.25)" },
-  "Bị khóa":        { color: "#8b5cf6", bg: "rgba(139,92,246,0.12)",  glow: "rgba(139,92,246,0.25)" },
-  "Chưa kích hoạt": { color: "#64748b", bg: "rgba(100,116,139,0.12)", glow: "rgba(100,116,139,0.2)" },
+const ALL_STATUSES: LicenseKeyStatus[] = [
+  LicenseKeyStatus.HoatDong, LicenseKeyStatus.SapHetHan, LicenseKeyStatus.DaHetHan,
+  LicenseKeyStatus.BiKhoa, LicenseKeyStatus.ChuaKichHoat,
+];
+const TAB_TO_STATUS: Partial<Record<string, LicenseKeyStatus>> = {
+  "Hoạt động":       LicenseKeyStatus.HoatDong,
+  "Sắp hết hạn":     LicenseKeyStatus.SapHetHan,
+  "Đã hết hạn":      LicenseKeyStatus.DaHetHan,
+  "Bị khóa":         LicenseKeyStatus.BiKhoa,
+  "Chưa kích hoạt":  LicenseKeyStatus.ChuaKichHoat,
 };
 
-type Filters = { statuses: KeyStatus[] };
+const STATUS_COLORS: Record<number, { color: string; bg: string; glow: string }> = {
+  [LicenseKeyStatus.HoatDong]:      { color: "#10b981", bg: "rgba(16,185,129,0.12)",  glow: "rgba(16,185,129,0.25)" },
+  [LicenseKeyStatus.SapHetHan]:     { color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  glow: "rgba(245,158,11,0.25)" },
+  [LicenseKeyStatus.DaHetHan]:      { color: "#ef4444", bg: "rgba(239,68,68,0.12)",   glow: "rgba(239,68,68,0.25)" },
+  [LicenseKeyStatus.BiKhoa]:        { color: "#8b5cf6", bg: "rgba(139,92,246,0.12)",  glow: "rgba(139,92,246,0.25)" },
+  [LicenseKeyStatus.ChuaKichHoat]:  { color: "#64748b", bg: "rgba(100,116,139,0.12)", glow: "rgba(100,116,139,0.2)" },
+};
+
+type Filters = { statuses: LicenseKeyStatus[] };
 const DEFAULT_FILTERS: Filters = { statuses: [] };
 
 const genKey = (prefix = "NEXK") => {
@@ -84,7 +95,7 @@ function KeyDetailModal({ licKey, onClose, onEdit, onToggleLock }: {
 }) {
   const [showFull, setShowFull] = useState(false);
   const sc = STATUS_COLORS[licKey.status];
-  const isLocked = licKey.status === "Bị khóa";
+  const isLocked = licKey.status === LicenseKeyStatus.BiKhoa;
 
   return (
     <Modal onClose={onClose}>
@@ -101,7 +112,7 @@ function KeyDetailModal({ licKey, onClose, onEdit, onToggleLock }: {
             </div>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 10px", borderRadius: 99, background: sc.bg, color: sc.color, fontSize: 11, fontWeight: 700, boxShadow: `0 0 10px ${sc.glow}` }}>
               <span style={{ width: 5, height: 5, borderRadius: "50%", background: sc.color, display: "inline-block" }} />
-              {licKey.status}
+              {LICENSE_KEY_STATUS_LABEL[licKey.status]}
             </span>
           </div>
           <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 9, border: "1px solid rgba(30,42,80,0.8)", background: "rgba(255,255,255,0.04)", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0 }}><X size={15} /></button>
@@ -111,7 +122,7 @@ function KeyDetailModal({ licKey, onClose, onEdit, onToggleLock }: {
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
 
           {/* Key value */}
-          <div style={{ background: `rgba(${licKey.status === "Bị khóa" ? "139,92,246" : "59,130,246"},0.06)`, border: `1px solid rgba(${licKey.status === "Bị khóa" ? "139,92,246" : "59,130,246"},0.2)`, borderRadius: 12, padding: "16px 18px" }}>
+          <div style={{ background: `rgba(${licKey.status === LicenseKeyStatus.BiKhoa ? "139,92,246" : "59,130,246"},0.06)`, border: `1px solid rgba(${licKey.status === LicenseKeyStatus.BiKhoa ? "139,92,246" : "59,130,246"},0.2)`, borderRadius: 12, padding: "16px 18px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
               <SectionLabel icon={<KeyRound size={12} />}>License Key</SectionLabel>
               <div style={{ display: "flex", gap: 6 }}>
@@ -156,7 +167,7 @@ function KeyDetailModal({ licKey, onClose, onEdit, onToggleLock }: {
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[
                 { label: "Kích hoạt", value: licKey.activatedAt ? formatDate(licKey.activatedAt) : "Chưa kích hoạt", color: licKey.activatedAt ? "#94a3b8" : "#334155" },
-                { label: "Hết hạn", value: licKey.expiresAt ? formatDate(licKey.expiresAt) : "Vĩnh viễn", color: licKey.status === "Sắp hết hạn" ? "#f59e0b" : licKey.status === "Đã hết hạn" ? "#ef4444" : "#94a3b8" },
+                { label: "Hết hạn", value: licKey.expiresAt ? formatDate(licKey.expiresAt) : "Vĩnh viễn", color: licKey.status === LicenseKeyStatus.SapHetHan ? "#f59e0b" : licKey.status === LicenseKeyStatus.DaHetHan ? "#ef4444" : "#94a3b8" },
                 ...(licKey.orderId ? [{ label: "Mã đơn hàng", value: `#${licKey.orderId}`, color: "#60a5fa" }] : []),
               ].map(row => (
                 <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -186,7 +197,7 @@ function KeyEditModal({ licKey, onSave, onClose }: {
   onSave: (id: string, data: Partial<LicenseKey>) => void;
   onClose: () => void;
 }) {
-  const [status, setStatus]   = useState<KeyStatus>(licKey.status);
+  const [status, setStatus]   = useState<LicenseKeyStatus>(licKey.status as LicenseKeyStatus);
   const [expires, setExpires] = useState(licKey.expiresAt ? licKey.expiresAt.slice(0, 10) : "");
 
   const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", borderRadius: 8, fontSize: 13, background: "#060a15", border: "1px solid rgba(30,42,80,0.9)", color: "#e2e8f0", outline: "none", boxSizing: "border-box" };
@@ -206,8 +217,8 @@ function KeyEditModal({ licKey, onSave, onClose }: {
         <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <label style={labelStyle}>Trạng thái</label>
-            <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(e.target.value as KeyStatus)}>
-              {ALL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+            <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(Number(e.target.value) as LicenseKeyStatus)}>
+              {ALL_STATUSES.map(s => <option key={s} value={s}>{LICENSE_KEY_STATUS_LABEL[s]}</option>)}
             </select>
           </div>
           <div>
@@ -232,7 +243,7 @@ function KeyEditModal({ licKey, onSave, onClose }: {
 function CreateKeyModal({ onCreate, onClose, products }: { onCreate: (body: Record<string, unknown>) => void; onClose: () => void; products: Product[] }) {
   const [keyVal, setKeyVal]       = useState(genKey());
   const [productId, setProductId] = useState(products[0]?.id ?? "");
-  const [status, setStatus]       = useState<KeyStatus>("Chưa kích hoạt");
+  const [status, setStatus]       = useState<LicenseKeyStatus>(LicenseKeyStatus.ChuaKichHoat);
   const [expires, setExpires]     = useState("");
   const [errors, setErrors]       = useState<Record<string, string>>({});
 
@@ -286,8 +297,8 @@ function CreateKeyModal({ onCreate, onClose, products }: { onCreate: (body: Reco
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <label style={labelStyle}>Trạng thái</label>
-              <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(e.target.value as KeyStatus)}>
-                {ALL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(Number(e.target.value) as LicenseKeyStatus)}>
+                {ALL_STATUSES.map(s => <option key={s} value={s}>{LICENSE_KEY_STATUS_LABEL[s]}</option>)}
               </select>
             </div>
             <div>
@@ -310,7 +321,7 @@ function BulkGenerateModal({ onCreate, onClose, products }: { onCreate: (body: R
   const [prefix, setPrefix]       = useState("NEXK");
   const [productId, setProductId] = useState(products[0]?.id ?? "");
   const [quantity, setQuantity]   = useState("5");
-  const [status, setStatus]       = useState<KeyStatus>("Chưa kích hoạt");
+  const [status, setStatus]       = useState<LicenseKeyStatus>(LicenseKeyStatus.ChuaKichHoat);
   const [expires, setExpires]     = useState("");
   const [errors, setErrors]       = useState<Record<string, string>>({});
 
@@ -362,8 +373,8 @@ function BulkGenerateModal({ onCreate, onClose, products }: { onCreate: (body: R
             </div>
             <div>
               <label style={labelStyle}>Trạng thái</label>
-              <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(e.target.value as KeyStatus)}>
-                {ALL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(Number(e.target.value) as LicenseKeyStatus)}>
+                {ALL_STATUSES.map(s => <option key={s} value={s}>{LICENSE_KEY_STATUS_LABEL[s]}</option>)}
               </select>
             </div>
             <div>
@@ -411,7 +422,7 @@ function FilterDropdown({ filters, onChange, onClear, onClose, top, right }: {
   filters: Filters; onChange: (f: Filters) => void;
   onClear: () => void; onClose: () => void; top: number; right: number;
 }) {
-  const toggle = (s: KeyStatus) => {
+  const toggle = (s: LicenseKeyStatus) => {
     const next = filters.statuses.includes(s) ? filters.statuses.filter(x => x !== s) : [...filters.statuses, s];
     onChange({ ...filters, statuses: next });
   };
@@ -422,7 +433,7 @@ function FilterDropdown({ filters, onChange, onClear, onClose, top, right }: {
         {ALL_STATUSES.map(s => (
           <label key={s} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
             <input type="checkbox" checked={filters.statuses.includes(s)} onChange={() => toggle(s)} style={{ accentColor: STATUS_COLORS[s].color, width: 14, height: 14, cursor: "pointer" }} />
-            <span style={{ fontSize: 12, color: STATUS_COLORS[s].color }}>{s}</span>
+            <span style={{ fontSize: 12, color: STATUS_COLORS[s].color }}>{LICENSE_KEY_STATUS_LABEL[s]}</span>
           </label>
         ))}
       </div>
@@ -469,7 +480,7 @@ export default function KeysPage() {
     setLoading(true);
     setApiError(null);
     try {
-      const statusParam = activeTab !== "Tất cả" ? activeTab : undefined;
+      const statusParam = TAB_TO_STATUS[activeTab];
       const result = await keysApi.list({
         page,
         limit: PAGE_SIZE,
@@ -532,7 +543,7 @@ export default function KeysPage() {
   }, [fetchData]);
 
   const handleToggleLock = useCallback(async (k: LicenseKey) => {
-    const locked = k.status !== "Bị khóa";
+    const locked = k.status !== LicenseKeyStatus.BiKhoa;
     try {
       await keysApi.lock(k.id, locked);
       setViewing(null);
@@ -555,10 +566,10 @@ export default function KeysPage() {
 
         <StatsGrid cols={5}>
           <StatCard label="Tổng key" value={meta.total} change={8} changeLabel="so với tháng trước" icon="key" color="blue" />
-          <StatCard label="Hoạt động" value={keys.filter(k => k.status === "Hoạt động").length} change={5} changeLabel="so với tháng trước" icon="key" color="green" />
-          <StatCard label="Sắp hết hạn" value={keys.filter(k => k.status === "Sắp hết hạn").length} changeLabel="so với tháng trước" icon="alert" color="amber" />
-          <StatCard label="Đã hết hạn" value={keys.filter(k => k.status === "Đã hết hạn").length} change={-2} changeLabel="so với tháng trước" icon="key" color="rose" />
-          <StatCard label="Bị khóa" value={keys.filter(k => k.status === "Bị khóa").length} changeLabel="so với tháng trước" icon="key" color="purple" />
+          <StatCard label="Hoạt động" value={keys.filter(k => k.status === LicenseKeyStatus.HoatDong).length} change={5} changeLabel="so với tháng trước" icon="key" color="green" />
+          <StatCard label="Sắp hết hạn" value={keys.filter(k => k.status === LicenseKeyStatus.SapHetHan).length} changeLabel="so với tháng trước" icon="alert" color="amber" />
+          <StatCard label="Đã hết hạn" value={keys.filter(k => k.status === LicenseKeyStatus.DaHetHan).length} change={-2} changeLabel="so với tháng trước" icon="key" color="rose" />
+          <StatCard label="Bị khóa" value={keys.filter(k => k.status === LicenseKeyStatus.BiKhoa).length} changeLabel="so với tháng trước" icon="key" color="purple" />
         </StatsGrid>
         {apiError && (
           <div style={{ textAlign: "center", padding: 16, color: "#ef4444", fontSize: 12 }}>{apiError}</div>
@@ -587,7 +598,7 @@ export default function KeysPage() {
               <button key={tab} onClick={() => { setActiveTab(tab); setPage(1); }} className={`tab-btn ${activeTab === tab ? "tab-btn-active" : "tab-btn-inactive"}`}>
                 {tab}
                 <span className={`tab-count ${activeTab === tab ? "tab-count-active" : "tab-count-inactive"}`}>
-                  {tab === "Tất cả" ? meta.total : keys.filter(k => k.status === tab).length}
+                  {tab === "Tất cả" ? meta.total : keys.filter(k => k.status === TAB_TO_STATUS[tab]).length}
                 </span>
               </button>
             ))}
@@ -630,7 +641,7 @@ export default function KeysPage() {
                   </td>
                   <td><span style={{ fontSize: 11, color: "#475569" }}>{k.activatedAt ? formatDate(k.activatedAt) : "—"}</span></td>
                   <td>
-                    <span style={{ fontSize: 11, color: k.status === "Sắp hết hạn" ? "#f59e0b" : k.status === "Đã hết hạn" ? "#ef4444" : "#475569" }}>
+                    <span style={{ fontSize: 11, color: k.status === LicenseKeyStatus.SapHetHan ? "#f59e0b" : k.status === LicenseKeyStatus.DaHetHan ? "#ef4444" : "#475569" }}>
                       {k.expiresAt ? formatDate(k.expiresAt) : "—"}
                     </span>
                   </td>

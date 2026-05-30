@@ -6,6 +6,7 @@ import { StatCard, StatsGrid } from "@/components/ui/StatCard";
 import { logsApi } from "@/lib/api";
 import type { ApiMeta } from "@/lib/api";
 import type { Activity } from "@/lib/types";
+import { ActivityLogType } from "@/lib/types";
 import { timeAgo, formatDateTime } from "@/lib/utils";
 import {
   ShoppingCart, Users, Package, KeyRound, CreditCard,
@@ -15,20 +16,28 @@ import {
 type LogEntry = Activity & { isRead: boolean; adminName?: string };
 
 /* ─── Icon + color config (matching Topbar notif) ─────────────── */
-const TYPE_CFG: Record<string, { icon: React.ReactNode; color: string; bg: string; label: string; emoji: string }> = {
-  order:    { icon: <ShoppingCart size={14} />, color: "#3b82f6", bg: "rgba(59,130,246,0.12)",  label: "Đơn hàng",  emoji: "🛒" },
-  customer: { icon: <Users size={14} />,        color: "#10b981", bg: "rgba(16,185,129,0.12)",  label: "Khách hàng", emoji: "👤" },
-  product:  { icon: <Package size={14} />,      color: "#8b5cf6", bg: "rgba(139,92,246,0.12)",  label: "Sản phẩm",  emoji: "📦" },
-  key:      { icon: <KeyRound size={14} />,     color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  label: "Key",        emoji: "🔑" },
-  payment:  { icon: <CreditCard size={14} />,   color: "#06b6d4", bg: "rgba(6,182,212,0.12)",   label: "Thanh toán", emoji: "💰" },
-  admin:    { icon: <ShieldCheck size={14} />,  color: "#94a3b8", bg: "rgba(148,163,184,0.08)", label: "Hệ thống",  emoji: "⚙️" },
+const TYPE_CFG: Record<number, { icon: React.ReactNode; color: string; bg: string; label: string; emoji: string }> = {
+  [ActivityLogType.Order]:    { icon: <ShoppingCart size={14} />, color: "#3b82f6", bg: "rgba(59,130,246,0.12)",  label: "Đơn hàng",   emoji: "🛒" },
+  [ActivityLogType.Customer]: { icon: <Users size={14} />,        color: "#10b981", bg: "rgba(16,185,129,0.12)",  label: "Khách hàng", emoji: "👤" },
+  [ActivityLogType.Product]:  { icon: <Package size={14} />,      color: "#8b5cf6", bg: "rgba(139,92,246,0.12)",  label: "Sản phẩm",   emoji: "📦" },
+  [ActivityLogType.Key]:      { icon: <KeyRound size={14} />,     color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  label: "Key",         emoji: "🔑" },
+  [ActivityLogType.Payment]:  { icon: <CreditCard size={14} />,   color: "#06b6d4", bg: "rgba(6,182,212,0.12)",   label: "Thanh toán",  emoji: "💰" },
+  [ActivityLogType.Admin]:    { icon: <ShieldCheck size={14} />,  color: "#94a3b8", bg: "rgba(148,163,184,0.08)", label: "Hệ thống",   emoji: "⚙️" },
 };
 
-const TABS = ["Tất cả", "Đơn hàng", "Khách hàng", "Sản phẩm", "Key", "Thanh toán", "Hệ thống"] as const;
+/* String keys used for API filter params (logsApi.list accepts type?: string) */
 const TAB_TYPE_MAP: Record<string, string> = {
   "Đơn hàng": "order", "Khách hàng": "customer", "Sản phẩm": "product",
   "Key": "key", "Thanh toán": "payment", "Hệ thống": "admin",
 };
+/* Numeric type for local filtering against Activity.type */
+const TAB_NUMERIC_MAP: Record<string, number> = {
+  "Đơn hàng": ActivityLogType.Order, "Khách hàng": ActivityLogType.Customer,
+  "Sản phẩm": ActivityLogType.Product, "Key": ActivityLogType.Key,
+  "Thanh toán": ActivityLogType.Payment, "Hệ thống": ActivityLogType.Admin,
+};
+
+const TABS = ["Tất cả", "Đơn hàng", "Khách hàng", "Sản phẩm", "Key", "Thanh toán", "Hệ thống"] as const;
 const PAGE_SIZE = 10;
 
 function PagBtn({ children, onClick, disabled = false, active = false }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; active?: boolean }) {
@@ -173,7 +182,8 @@ export default function LogsPage() {
           <div style={{ display: "flex", gap: 0, padding: "0 20px", borderBottom: "1px solid rgba(30,42,80,0.5)", overflowX: "auto" }}>
             {TABS.map(tab => {
               const typeKey = TAB_TYPE_MAP[tab];
-              const cfg = typeKey ? TYPE_CFG[typeKey] : null;
+              const numericKey = TAB_NUMERIC_MAP[tab];
+              const cfg = numericKey !== undefined ? TYPE_CFG[numericKey] : null;
               const cnt = tab === "Tất cả" ? meta.total : (typeCounts[typeKey] ?? 0);
               return (
                 <button key={tab} onClick={() => handleTabChange(tab)}
@@ -198,7 +208,7 @@ export default function LogsPage() {
                 Không tìm thấy hoạt động nào
               </div>
             ) : logs.map((log, i) => {
-              const cfg = TYPE_CFG[log.type] ?? TYPE_CFG.admin;
+              const cfg = TYPE_CFG[log.type] ?? TYPE_CFG[ActivityLogType.Admin];
               const isUnread = !log.isRead;
               return (
                 <div

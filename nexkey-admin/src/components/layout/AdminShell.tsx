@@ -2,6 +2,7 @@
 
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
+import { useSidebar, SIDEBAR_W } from "@/store/SidebarContext";
 
 type Props = {
   children: React.ReactNode;
@@ -10,10 +11,13 @@ type Props = {
 };
 
 export function AdminShell({ children, title, subtitle }: Props) {
+  const { collapsed } = useSidebar();
+  const ml = collapsed ? SIDEBAR_W.collapsed : SIDEBAR_W.open;
+
   return (
     <div style={{ background: "#070b16", minHeight: "100vh" }}>
       <Sidebar />
-      <div style={{ marginLeft: 256 }}>
+      <div style={{ marginLeft: ml, transition: "margin-left 0.22s ease" }}>
         <Topbar title={title} subtitle={subtitle} />
         <main style={{ paddingTop: 60 }}>
           {children}

@@ -5,17 +5,25 @@ import Link from "next/link";
 import { Bell, Search, ChevronDown, Settings, LogOut, User, Plus, Command, CheckCheck } from "lucide-react";
 import { useNotifications } from "@/store/NotificationContext";
 import { useAuth } from "@/store/AuthContext";
+import { useSidebar, SIDEBAR_W } from "@/store/SidebarContext";
 import { timeAgo } from "@/lib/utils";
+import { ActivityLogType } from "@/lib/types";
 
-const TYPE_EMOJI: Record<string, string> = {
-  order: "🛒", customer: "👤", product: "📦",
-  key: "🔑", payment: "💰", admin: "⚙️",
+const TYPE_EMOJI: Record<number, string> = {
+  [ActivityLogType.Order]:    "🛒",
+  [ActivityLogType.Customer]: "👤",
+  [ActivityLogType.Product]:  "📦",
+  [ActivityLogType.Key]:      "🔑",
+  [ActivityLogType.Payment]:  "💰",
+  [ActivityLogType.Admin]:    "⚙️",
 };
 
 type TopbarProps = { title: string; subtitle?: string };
 
 export function Topbar({ title, subtitle }: TopbarProps) {
   const { user, logout } = useAuth();
+  const { collapsed } = useSidebar();
+  const sidebarLeft = collapsed ? SIDEBAR_W.collapsed : SIDEBAR_W.open;
   const [showNotif, setShowNotif]     = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
@@ -32,7 +40,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
         <div style={{ position: "fixed", inset: 0, zIndex: 39 }} onClick={closeAll} />
       )}
 
-      <header style={{ position: "fixed", top: 0, right: 0, left: 256, height: 60, zIndex: 40, display: "flex", alignItems: "center", gap: 12, padding: "0 20px", background: "rgba(6,10,21,0.92)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid rgba(30,42,80,0.7)", boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
+      <header style={{ position: "fixed", top: 0, right: 0, left: sidebarLeft, height: 60, zIndex: 40, transition: "left 0.22s ease", display: "flex", alignItems: "center", gap: 12, padding: "0 20px", background: "rgba(6,10,21,0.92)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", borderBottom: "1px solid rgba(30,42,80,0.7)", boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
 
         {/* Page title */}
         <div style={{ flex: 1, minWidth: 0 }}>

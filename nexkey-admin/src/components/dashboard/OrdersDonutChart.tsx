@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { ordersApi } from "@/lib/api";
 
 type Slice = { name: string; value: number; color: string };
+
+type Props = {
+  stats: { hoanThanh: number; dangXuLy: number; daHuy: number; hoanTien: number } | null;
+};
 
 const DEFAULT_DATA: Slice[] = [
   { name: "Hoàn thành", value: 0, color: "#10b981" },
@@ -27,20 +30,15 @@ const CustomTooltip = ({ active, payload, total }: any) => {
   );
 };
 
-export function OrdersDonutChart() {
-  const [data, setData] = useState<Slice[]>(DEFAULT_DATA);
+export function OrdersDonutChart({ stats }: Props) {
   const [hovered, setHovered] = useState(false);
 
-  useEffect(() => {
-    ordersApi.stats().then(stats => {
-      setData([
-        { name: "Hoàn thành", value: stats.hoanThanh,    color: "#10b981" },
-        { name: "Đang xử lý", value: stats.dangXuLy,     color: "#3b82f6" },
-        { name: "Đã hủy",     value: stats.daHuy,        color: "#ef4444" },
-        { name: "Hoàn tiền",  value: stats.hoanTien,     color: "#f59e0b" },
-      ]);
-    }).catch(() => {});
-  }, []);
+  const data: Slice[] = stats ? [
+    { name: "Hoàn thành", value: stats.hoanThanh, color: "#10b981" },
+    { name: "Đang xử lý", value: stats.dangXuLy,  color: "#3b82f6" },
+    { name: "Đã hủy",     value: stats.daHuy,      color: "#ef4444" },
+    { name: "Hoàn tiền",  value: stats.hoanTien,   color: "#f59e0b" },
+  ] : DEFAULT_DATA;
 
   const total = data.reduce((s, d) => s + d.value, 0);
 

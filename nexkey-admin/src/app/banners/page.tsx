@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { bannersApi } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
-import type { Banner, BannerPosition, BannerStatus } from "@/lib/types";
+import type { Banner } from "@/lib/types";
+import { BannerPosition, BannerStatus, BANNER_POSITION_LABEL, BANNER_STATUS_LABEL } from "@/lib/types";
 import {
   Upload, Plus, Eye, Pencil, Trash2, GripVertical,
   ExternalLink, Image as ImageIcon, X, Link, MapPin,
@@ -16,17 +17,17 @@ import {
 
 /* ─── Constants ──────────────────────────────────────────────── */
 const POSITIONS: BannerPosition[] = [
-  "Trang chủ - Hero",
-  "Trang chủ - Banner",
-  "Trang sản phẩm",
-  "Thanh toán",
+  BannerPosition.TrangChuHero,
+  BannerPosition.TrangChuBanner,
+  BannerPosition.TrangSanPham,
+  BannerPosition.ThanhToan,
 ];
 
-const POS_COLORS: Record<BannerPosition, { color: string; bg: string; gradient: string }> = {
-  "Trang chủ - Hero":    { color: "#3b82f6", bg: "rgba(59,130,246,0.1)",  gradient: "linear-gradient(135deg,rgba(59,130,246,0.15),rgba(124,58,237,0.08))" },
-  "Trang chủ - Banner":  { color: "#8b5cf6", bg: "rgba(139,92,246,0.1)", gradient: "linear-gradient(135deg,rgba(139,92,246,0.15),rgba(59,130,246,0.08))" },
-  "Trang sản phẩm":      { color: "#10b981", bg: "rgba(16,185,129,0.1)", gradient: "linear-gradient(135deg,rgba(16,185,129,0.15),rgba(59,130,246,0.06))" },
-  "Thanh toán":          { color: "#f59e0b", bg: "rgba(245,158,11,0.1)", gradient: "linear-gradient(135deg,rgba(245,158,11,0.15),rgba(239,68,68,0.06))" },
+const POS_COLORS: Record<number, { color: string; bg: string; gradient: string }> = {
+  [BannerPosition.TrangChuHero]:   { color: "#3b82f6", bg: "rgba(59,130,246,0.1)",  gradient: "linear-gradient(135deg,rgba(59,130,246,0.15),rgba(124,58,237,0.08))" },
+  [BannerPosition.TrangChuBanner]: { color: "#8b5cf6", bg: "rgba(139,92,246,0.1)", gradient: "linear-gradient(135deg,rgba(139,92,246,0.15),rgba(59,130,246,0.08))" },
+  [BannerPosition.TrangSanPham]:   { color: "#10b981", bg: "rgba(16,185,129,0.1)", gradient: "linear-gradient(135deg,rgba(16,185,129,0.15),rgba(59,130,246,0.06))" },
+  [BannerPosition.ThanhToan]:      { color: "#f59e0b", bg: "rgba(245,158,11,0.1)", gradient: "linear-gradient(135deg,rgba(245,158,11,0.15),rgba(239,68,68,0.06))" },
 };
 
 /* ─── Modal wrapper ──────────────────────────────────────────── */
@@ -81,7 +82,7 @@ function BannerPreviewModal({ banner, isActive, onClose, onEdit, onToggle }: {
         {/* Info */}
         <div style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
           {[
-            { icon: <MapPin size={13} />, label: "Vị trí", value: banner.position, color: pc.color, badge: true },
+            { icon: <MapPin size={13} />, label: "Vị trí", value: BANNER_POSITION_LABEL[banner.position], color: pc.color, badge: true },
             ...(banner.link ? [{ icon: <Link size={13} />, label: "Liên kết", value: banner.link, color: "#60a5fa", badge: false }] : []),
             { icon: <Hash size={13} />, label: "Thứ tự", value: `#${banner.sortOrder}`, color: "#94a3b8", badge: false },
             { icon: <Calendar size={13} />, label: "Tạo lúc", value: formatDate(banner.createdAt), color: "#475569", badge: false },
@@ -123,9 +124,9 @@ function BannerFormModal({ banner, onSave, onClose }: {
   const [title, setTitle]       = useState(banner?.title ?? "");
   const [image, setImage]       = useState(banner?.image ?? "");
   const [link, setLink]         = useState(banner?.link ?? "");
-  const [position, setPosition] = useState<BannerPosition>(banner?.position ?? "Trang chủ - Hero");
+  const [position, setPosition] = useState<BannerPosition>(banner?.position ?? BannerPosition.TrangChuHero);
   const [sortOrder, setSortOrder] = useState(String(banner?.sortOrder ?? 1));
-  const [status, setStatus]     = useState<BannerStatus>(banner?.status ?? "Hiển thị");
+  const [status, setStatus]     = useState<BannerStatus>(banner?.status ?? BannerStatus.HienThi);
   const [errors, setErrors]     = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -185,9 +186,9 @@ function BannerFormModal({ banner, onSave, onClose }: {
             </div>
             <div style={{ zIndex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title || "Tiêu đề banner..."}</div>
-              <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>{position}</div>
+              <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>{BANNER_POSITION_LABEL[position]}</div>
             </div>
-            <div style={{ position: "absolute", top: 8, right: 10, fontSize: 10, fontWeight: 700, color: pc.color, background: pc.bg, padding: "1px 8px", borderRadius: 99 }}>{status}</div>
+            <div style={{ position: "absolute", top: 8, right: 10, fontSize: 10, fontWeight: 700, color: pc.color, background: pc.bg, padding: "1px 8px", borderRadius: 99 }}>{BANNER_STATUS_LABEL[status]}</div>
           </div>
 
           <div>
@@ -220,8 +221,8 @@ function BannerFormModal({ banner, onSave, onClose }: {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 12 }}>
             <div>
               <label style={labelStyle}>Vị trí hiển thị</label>
-              <select style={{ ...inputStyle, cursor: "pointer" }} value={position} onChange={e => setPosition(e.target.value as BannerPosition)}>
-                {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={position} onChange={e => setPosition(Number(e.target.value) as BannerPosition)}>
+                {POSITIONS.map(p => <option key={p} value={p}>{BANNER_POSITION_LABEL[p]}</option>)}
               </select>
             </div>
             <div>
@@ -233,9 +234,9 @@ function BannerFormModal({ banner, onSave, onClose }: {
           <div>
             <label style={labelStyle}>Trạng thái</label>
             <div style={{ display: "flex", gap: 8 }}>
-              {(["Hiển thị", "Ẩn"] as BannerStatus[]).map(s => (
-                <button key={s} onClick={() => setStatus(s)} style={{ flex: 1, padding: "9px 0", borderRadius: 8, fontSize: 13, fontWeight: status === s ? 700 : 400, border: "1px solid", borderColor: status === s ? (s === "Hiển thị" ? "#10b981" : "#ef4444") : "rgba(30,42,80,0.8)", background: status === s ? (s === "Hiển thị" ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.1)") : "transparent", color: status === s ? (s === "Hiển thị" ? "#34d399" : "#f87171") : "#64748b", cursor: "pointer" }}>
-                  {s}
+              {([BannerStatus.HienThi, BannerStatus.An] as BannerStatus[]).map(s => (
+                <button key={s} onClick={() => setStatus(s)} style={{ flex: 1, padding: "9px 0", borderRadius: 8, fontSize: 13, fontWeight: status === s ? 700 : 400, border: "1px solid", borderColor: status === s ? (s === BannerStatus.HienThi ? "#10b981" : "#ef4444") : "rgba(30,42,80,0.8)", background: status === s ? (s === BannerStatus.HienThi ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.1)") : "transparent", color: status === s ? (s === BannerStatus.HienThi ? "#34d399" : "#f87171") : "#64748b", cursor: "pointer" }}>
+                  {BANNER_STATUS_LABEL[s]}
                 </button>
               ))}
             </div>
@@ -333,7 +334,7 @@ function BannerCard({ banner, isActive, onToggle, onView, onEdit, onDelete }: {
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: pc.color, background: pc.bg, padding: "2px 8px", borderRadius: 99 }}>
-            {banner.position}
+            {BANNER_POSITION_LABEL[banner.position]}
           </span>
           <span style={{ fontSize: 10, color: "#334155" }}>{formatDate(banner.createdAt)}</span>
         </div>
@@ -364,7 +365,7 @@ export default function BannersPage() {
     try {
       const data = await bannersApi.list();
       setBanners(data);
-      setToggles(Object.fromEntries(data.map(b => [b.id, b.status === "Hiển thị"])));
+      setToggles(Object.fromEntries(data.map(b => [b.id, b.status === BannerStatus.HienThi])));
     } catch (err) {
       setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
     } finally {
@@ -451,7 +452,7 @@ export default function BannersPage() {
               return (
                 <div key={pos} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 99, background: pc.bg, border: `1px solid ${pc.color}25`, fontSize: 11, color: pc.color, fontWeight: 600 }}>
                   <span style={{ width: 6, height: 6, borderRadius: "50%", background: pc.color, display: "inline-block" }} />
-                  {pos} <span style={{ fontWeight: 400, color: "#64748b" }}>({cnt})</span>
+                  {BANNER_POSITION_LABEL[pos]} <span style={{ fontWeight: 400, color: "#64748b" }}>({cnt})</span>
                 </div>
               );
             })}

@@ -9,7 +9,8 @@ import { TopProducts } from "@/components/dashboard/TopProducts";
 import { RecentOrders } from "@/components/dashboard/RecentOrders";
 import { PaymentStats } from "@/components/dashboard/PaymentStats";
 import { RecentActivities } from "@/components/dashboard/RecentActivities";
-import { dashboardApi } from "@/lib/api";
+import { dashboardApi, ordersApi, productsApi, paymentsApi, logsApi } from "@/lib/api";
+import type { Product, Activity, PaymentMethod } from "@/lib/types";
 
 type DashStats = {
   totalOrders: number;
@@ -18,17 +19,47 @@ type DashStats = {
   totalProducts: number;
 };
 
+type OrderStats = {
+  hoanThanh: number; dangXuLy: number;
+  daHuy: number; hoanTien: number;
+};
+
+type PayStats = {
+  byMethod: { method: PaymentMethod; count: number; revenue: number }[];
+  totalRevenue: number;
+  totalOrders: number;
+};
+
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashStats>({ totalOrders: 0, revenue: 0, totalCustomers: 0, totalProducts: 0 });
+  const [stats,        setStats]        = useState<DashStats>({ totalOrders: 0, revenue: 0, totalCustomers: 0, totalProducts: 0 });
+  const [orderStats,   setOrderStats]   = useState<OrderStats | null>(null);
+  const [topProducts,  setTopProducts]  = useState<Product[]>([]);
+  const [payStats,     setPayStats]     = useState<PayStats | null>(null);
+  const [activities,   setActivities]   = useState<Activity[]>([]);
 
   useEffect(() => {
-    dashboardApi.stats().then(s => {
+    Promise.all([
+      dashboardApi.stats(),
+      ordersApi.stats(),
+      productsApi.list({ limit: 20 }),
+      paymentsApi.stats(),
+      logsApi.list({ limit: 20 }),
+    ]).then(([dash, orders, products, payments, logs]) => {
       setStats({
-        totalOrders: s.totalOrders,
-        revenue: s.tongDoanhThu,
-        totalCustomers: s.totalCustomers,
-        totalProducts: s.totalProducts,
+        totalOrders:   dash.totalOrders,
+        revenue:       dash.tongDoanhThu,
+        totalCustomers: dash.totalCustomers,
+        totalProducts:  dash.totalProducts,
       });
+      setOrderStats({
+        hoanThanh: orders.hoanThanh,
+        dangXuLy:  orders.dangXuLy,
+        daHuy:     orders.daHuy,
+        hoanTien:  orders.hoanTien,
+      });
+      setTopProducts(products.data);
+      setPayStats(payments);
+      setActivities(logs.data);
     }).catch(() => {});
   }, []);
 
@@ -37,52 +68,23 @@ export default function DashboardPage() {
       <div className="page-content">
 
         <StatsGrid cols={4}>
-          <StatCard
-            label="Tổng đơn hàng"
-            value={stats.totalOrders}
-            change={0}
-            changeLabel="tổng cộng"
-            icon="cart"
-            color="blue"
-          />
-          <StatCard
-            label="Doanh thu"
-            value={stats.revenue}
-            change={0}
-            changeLabel="tổng doanh thu"
-            icon="money"
-            color="green"
-            isCurrency
-          />
-          <StatCard
-            label="Khách hàng"
-            value={stats.totalCustomers}
-            change={0}
-            changeLabel="thành viên"
-            icon="users"
-            color="purple"
-          />
-          <StatCard
-            label="Sản phẩm"
-            value={stats.totalProducts}
-            change={0}
-            changeLabel="sản phẩm"
-            icon="package"
-            color="amber"
-          />
+          <StatCard label="Tổng đơn hàng" value={stats.totalOrders} change={0} changeLabel="tổng cộng"      icon="cart"    color="blue"   />
+          <StatCard label="Doanh thu"      value={stats.revenue}     change={0} changeLabel="tổng doanh thu" icon="money"   color="green"  isCurrency />
+          <StatCard label="Khách hàng"     value={stats.totalCustomers} change={0} changeLabel="thành viên"  icon="users"   color="purple" />
+          <StatCard label="Sản phẩm"       value={stats.totalProducts}  change={0} changeLabel="sản phẩm"   icon="package" color="amber"  />
         </StatsGrid>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 330px 260px", gap: 16 }}>
           <RevenueChart />
-          <OrdersDonutChart />
-          <TopProducts />
+          <OrdersDonutChart stats={orderStats} />
+          <TopProducts products={topProducts} />
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 16, alignItems: "start" }}>
           <RecentOrders />
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <PaymentStats />
-            <RecentActivities />
+            <PaymentStats data={payStats} />
+            <RecentActivities activities={activities} />
           </div>
         </div>
 

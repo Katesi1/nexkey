@@ -10,13 +10,11 @@ import {
   ExternalLink, Clock, ToggleLeft, ToggleRight, Hash,
 } from "lucide-react";
 import { pagesApi } from "@/lib/api";
-import type { StaticPage, PageStatus } from "@/lib/types";
+import type { StaticPage } from "@/lib/types";
+import { PageStatus, PAGE_STATUS_LABEL } from "@/lib/types";
 
 /* ─── Display label maps ─────────────────────────────────────────── */
-const STATUS_LABEL: Record<PageStatus, string> = {
-  HienThi: "Hiển thị",
-  An:      "Ẩn",
-};
+const STATUS_LABEL = PAGE_STATUS_LABEL;
 
 /* ─── Constants ──────────────────────────────────────────────────── */
 const PAGE_ICONS: Record<string, React.ReactNode> = {
@@ -61,7 +59,7 @@ function PagePreviewModal({ page, onClose, onEdit, onToggle }: {
   page: StaticPage; onClose: () => void; onEdit: () => void; onToggle: () => void;
 }) {
   const color   = getColor(page.slug);
-  const isVisible = page.status === "HienThi";
+  const isVisible = page.status === PageStatus.HienThi;
 
   return (
     <Modal onClose={onClose}>
@@ -136,7 +134,7 @@ function PageFormModal({ page, onSave, onClose }: {
   const [slug, setSlug]             = useState(page?.slug ?? "/");
   const [description, setDesc]      = useState(page?.description ?? "");
   const [content, setContent]       = useState(page?.content ?? "");
-  const [status, setStatus]         = useState<PageStatus>(page?.status ?? "HienThi");
+  const [status, setStatus]         = useState<PageStatus>(page?.status ?? PageStatus.HienThi);
   const [errors, setErrors]         = useState<Record<string, string>>({});
 
   const color = getColor(slug);
@@ -191,8 +189,8 @@ function PageFormModal({ page, onSave, onClose }: {
             <div>
               <label style={labelStyle}>Trạng thái</label>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {(["HienThi", "An"] as PageStatus[]).map(s => (
-                  <button key={s} onClick={() => setStatus(s)} style={{ padding: "8px 0", borderRadius: 7, fontSize: 12, fontWeight: status === s ? 700 : 400, border: "1px solid", borderColor: status === s ? (s === "HienThi" ? "#10b981" : "#ef4444") : "rgba(30,42,80,0.8)", background: status === s ? (s === "HienThi" ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.1)") : "transparent", color: status === s ? (s === "HienThi" ? "#34d399" : "#f87171") : "#64748b", cursor: "pointer" }}>
+                {([PageStatus.HienThi, PageStatus.An] as PageStatus[]).map(s => (
+                  <button key={s} onClick={() => setStatus(s)} style={{ padding: "8px 0", borderRadius: 7, fontSize: 12, fontWeight: status === s ? 700 : 400, border: "1px solid", borderColor: status === s ? (s === PageStatus.HienThi ? "#10b981" : "#ef4444") : "rgba(30,42,80,0.8)", background: status === s ? (s === PageStatus.HienThi ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.1)") : "transparent", color: status === s ? (s === PageStatus.HienThi ? "#34d399" : "#f87171") : "#64748b", cursor: "pointer" }}>
                     {STATUS_LABEL[s]}
                   </button>
                 ))}
@@ -283,8 +281,8 @@ export default function PagesPage() {
     !search || [p.title, p.slug, p.description ?? ""].some(s => s.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const visibleCount = pages.filter(p => p.status === "HienThi").length;
-  const hiddenCount  = pages.filter(p => p.status === "An").length;
+  const visibleCount = pages.filter(p => p.status === PageStatus.HienThi).length;
+  const hiddenCount  = pages.filter(p => p.status === PageStatus.An).length;
   const totalWords   = pages.reduce((s, p) => s + (p.wordCount ?? 0), 0);
 
   const handleSave = useCallback(async (data: { id?: string; title: string; slug: string; description: string; content: string; status: PageStatus }) => {
@@ -311,7 +309,7 @@ export default function PagesPage() {
 
   const handleToggle = useCallback(async (page: StaticPage) => {
     try {
-      const newStatus: PageStatus = page.status === "HienThi" ? "An" : "HienThi";
+      const newStatus: PageStatus = page.status === PageStatus.HienThi ? PageStatus.An : PageStatus.HienThi;
       await pagesApi.update(page.id, { status: newStatus });
       await fetchData();
       setViewing(prev => prev?.id === page.id ? { ...prev, status: newStatus } : prev);
@@ -357,7 +355,7 @@ export default function PagesPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {filtered.map(page => {
               const color = getColor(page.slug);
-              const isVisible = page.status === "HienThi";
+              const isVisible = page.status === PageStatus.HienThi;
               return (
                 <div
                   key={page.id}

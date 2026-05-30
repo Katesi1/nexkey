@@ -44,8 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => { refresh(); }, [refresh]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const { admin } = await auth.login(email, password);
-    setUser(admin);
+    await auth.login(email, password);
+    const me = await auth.me();
+    setUser(me);
     document.cookie = "nexkey_logged_in=1; path=/; max-age=86400; SameSite=Lax";
     router.push("/dashboard");
   }, [router]);

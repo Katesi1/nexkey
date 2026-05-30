@@ -8,7 +8,8 @@ import { Button, ActionButtons } from "@/components/ui/Button";
 import { customersApi } from "@/lib/api";
 import type { ApiMeta } from "@/lib/api";
 import { formatVND, formatDate } from "@/lib/utils";
-import type { Customer, CustomerStatus } from "@/lib/types";
+import type { Customer } from "@/lib/types";
+import { CustomerStatus, CUSTOMER_STATUS_LABEL } from "@/lib/types";
 import {
   Search, Filter, Download, UserPlus, X,
   User, ShoppingBag, DollarSign, Crown,
@@ -18,7 +19,14 @@ import {
 /* ─── Constants ──────────────────────────────────────────────── */
 const TABS = ["Tất cả", "Hoạt động", "VIP", "Bị khóa"] as const;
 const PAGE_SIZE = 10;
-const STATUS_OPTIONS: CustomerStatus[] = ["Hoạt động", "VIP", "Bị khóa"];
+const STATUS_OPTIONS: CustomerStatus[] = [
+  CustomerStatus.HoatDong, CustomerStatus.VIP, CustomerStatus.BiKhoa,
+];
+const TAB_TO_STATUS: Partial<Record<string, CustomerStatus>> = {
+  "Hoạt động": CustomerStatus.HoatDong,
+  "VIP":       CustomerStatus.VIP,
+  "Bị khóa":   CustomerStatus.BiKhoa,
+};
 
 const AVATAR_COLORS = [
   "linear-gradient(135deg,#2563eb,#7c3aed)",
@@ -28,13 +36,14 @@ const AVATAR_COLORS = [
   "linear-gradient(135deg,#0891b2,#2563eb)",
 ];
 
-const STATUS_COLORS: Record<CustomerStatus, { color: string; bg: string; glow: string }> = {
-  "Hoạt động": { color: "#10b981", bg: "rgba(16,185,129,0.12)",  glow: "rgba(16,185,129,0.25)" },
-  "VIP":        { color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  glow: "rgba(245,158,11,0.3)" },
-  "Bị khóa":   { color: "#ef4444", bg: "rgba(239,68,68,0.12)",   glow: "rgba(239,68,68,0.25)" },
+const STATUS_COLORS: Record<number, { color: string; bg: string; glow: string }> = {
+  [CustomerStatus.HoatDong]: { color: "#10b981", bg: "rgba(16,185,129,0.12)",  glow: "rgba(16,185,129,0.25)" },
+  [CustomerStatus.VIP]:      { color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  glow: "rgba(245,158,11,0.3)" },
+  [CustomerStatus.BiKhoa]:   { color: "#ef4444", bg: "rgba(239,68,68,0.12)",   glow: "rgba(239,68,68,0.25)" },
 };
 
 type Filters = { statuses: CustomerStatus[]; minSpend: string; maxSpend: string };
+
 const DEFAULT_FILTERS: Filters = { statuses: [], minSpend: "", maxSpend: "" };
 
 /* ─── Modal wrapper ──────────────────────────────────────────── */
@@ -69,7 +78,7 @@ function CustomerDetailModal({ customer, idx, onClose, onEdit, onToggleLock }: {
   onEdit: () => void; onToggleLock: () => void;
 }) {
   const sc = STATUS_COLORS[customer.status];
-  const isLocked = customer.status === "Bị khóa";
+  const isLocked = customer.status === CustomerStatus.BiKhoa;
 
   return (
     <Modal onClose={onClose}>
@@ -84,13 +93,13 @@ function CustomerDetailModal({ customer, idx, onClose, onEdit, onToggleLock }: {
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 6 }}>
             <span style={{ fontSize: 18, fontWeight: 800, color: "#f1f5f9" }}>{customer.fullName}</span>
-            {customer.status === "VIP" && <Crown size={16} style={{ color: "#f59e0b" }} />}
+            {customer.status === CustomerStatus.VIP && <Crown size={16} style={{ color: "#f59e0b" }} />}
           </div>
           <span style={{ fontFamily: "monospace", fontSize: 11, color: "#334155" }}>#{customer.id}</span>
           <div style={{ marginTop: 10 }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 12px", borderRadius: 99, background: sc.bg, color: sc.color, fontSize: 11, fontWeight: 700, boxShadow: `0 0 10px ${sc.glow}` }}>
               <span style={{ width: 5, height: 5, borderRadius: "50%", background: sc.color, display: "inline-block" }} />
-              {customer.status}
+              {CUSTOMER_STATUS_LABEL[customer.status]}
             </span>
           </div>
         </div>
@@ -195,8 +204,8 @@ function CustomerEditModal({ customer, onSave, onClose }: {
           </div>
           <div>
             <label style={labelStyle}>Trạng thái</label>
-            <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(e.target.value as CustomerStatus)}>
-              {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(Number(e.target.value) as CustomerStatus)}>
+              {STATUS_OPTIONS.map(s => <option key={s} value={s}>{CUSTOMER_STATUS_LABEL[s]}</option>)}
             </select>
           </div>
         </div>
@@ -214,7 +223,7 @@ function CreateCustomerModal({ onCreate, onClose }: { onCreate: (c: Customer) =>
   const [fullName, setFullName] = useState("");
   const [email, setEmail]       = useState("");
   const [phone, setPhone]       = useState("");
-  const [status, setStatus]     = useState<CustomerStatus>("Hoạt động");
+  const [status, setStatus]     = useState<CustomerStatus>(CustomerStatus.HoatDong);
   const [errors, setErrors]     = useState<Record<string, string>>({});
 
   const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", borderRadius: 8, fontSize: 13, background: "#060a15", border: "1px solid rgba(30,42,80,0.9)", color: "#e2e8f0", outline: "none", boxSizing: "border-box" };
@@ -266,8 +275,8 @@ function CreateCustomerModal({ onCreate, onClose }: { onCreate: (c: Customer) =>
           </div>
           <div>
             <label style={labelStyle}>Trạng thái</label>
-            <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(e.target.value as CustomerStatus)}>
-              {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(Number(e.target.value) as CustomerStatus)}>
+              {STATUS_OPTIONS.map(s => <option key={s} value={s}>{CUSTOMER_STATUS_LABEL[s]}</option>)}
             </select>
           </div>
         </div>
@@ -321,7 +330,7 @@ function FilterDropdown({ filters, onChange, onClear, onClose, top, right }: {
         {STATUS_OPTIONS.map(s => (
           <label key={s} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
             <input type="checkbox" checked={filters.statuses.includes(s)} onChange={() => toggleStatus(s)} style={{ accentColor: "#3b82f6", width: 14, height: 14, cursor: "pointer" }} />
-            <span style={{ fontSize: 12, color: "#cbd5e1" }}>{s}</span>
+            <span style={{ fontSize: 12, color: "#cbd5e1" }}>{CUSTOMER_STATUS_LABEL[s]}</span>
           </label>
         ))}
       </div>
@@ -370,7 +379,7 @@ export default function CustomersPage() {
     setLoading(true);
     setApiError(null);
     try {
-      const statusParam = activeTab !== "Tất cả" ? activeTab : undefined;
+      const statusParam = TAB_TO_STATUS[activeTab];
       const minSpend = filters.minSpend ? Number(filters.minSpend.replace(/\./g, "")) : undefined;
       const maxSpend = filters.maxSpend ? Number(filters.maxSpend.replace(/\./g, "")) : undefined;
       const result = await customersApi.list({
@@ -378,8 +387,8 @@ export default function CustomersPage() {
         limit: PAGE_SIZE,
         search: search || undefined,
         status: statusParam,
-        min_spending: minSpend,
-        max_spending: maxSpend,
+        minSpending: minSpend,
+        maxSpending: maxSpend,
       });
       setCustomers(result.data);
       setMeta(result.meta);
@@ -437,7 +446,7 @@ export default function CustomersPage() {
   }, [fetchData]);
 
   const handleToggleLock = useCallback(async (customer: Customer) => {
-    const locked = customer.status !== "Bị khóa";
+    const locked = customer.status !== CustomerStatus.BiKhoa;
     try {
       await customersApi.lock(customer.id, locked);
       setViewing(null);
@@ -454,7 +463,7 @@ export default function CustomersPage() {
         <StatsGrid cols={4}>
           <StatCard label="Tổng khách hàng" value={meta.total} change={8.5} changeLabel="so với tháng trước" icon="users" color="blue" />
           <StatCard label="Khách hàng mới" value={156} change={12} changeLabel="so với tháng trước" icon="users" color="green" />
-          <StatCard label="Khách VIP" value={customers.filter(c => c.status === "VIP").length} change={2} changeLabel="so với tháng trước" icon="star" color="amber" />
+          <StatCard label="Khách VIP" value={customers.filter(c => c.status === CustomerStatus.VIP).length} change={2} changeLabel="so với tháng trước" icon="star" color="amber" />
           <StatCard label="Tổng chi tiêu" value={totalSpending} isCurrency change={6.2} changeLabel="so với tháng trước" icon="money" color="purple" />
         </StatsGrid>
 
@@ -480,7 +489,7 @@ export default function CustomersPage() {
               <button key={tab} onClick={() => handleTabChange(tab)} className={`tab-btn ${activeTab === tab ? "tab-btn-active" : "tab-btn-inactive"}`}>
                 {tab}
                 <span className={`tab-count ${activeTab === tab ? "tab-count-active" : "tab-count-inactive"}`}>
-                  {tab === "Tất cả" ? meta.total : customers.filter(c => c.status === tab).length}
+                  {tab === "Tất cả" ? meta.total : customers.filter(c => c.status === TAB_TO_STATUS[tab]).length}
                 </span>
               </button>
             ))}
@@ -512,7 +521,7 @@ export default function CustomersPage() {
                       <div>
                         <div style={{ fontSize: 12.5, fontWeight: 500, color: "#e2e8f0", display: "flex", alignItems: "center", gap: 5 }}>
                           {customer.fullName}
-                          {customer.status === "VIP" && <Crown size={11} style={{ color: "#f59e0b" }} />}
+                          {customer.status === CustomerStatus.VIP && <Crown size={11} style={{ color: "#f59e0b" }} />}
                         </div>
                         <div style={{ fontSize: 10, color: "#334155" }}>#{customer.id}</div>
                       </div>

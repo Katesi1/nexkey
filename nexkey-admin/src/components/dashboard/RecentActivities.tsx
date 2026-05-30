@@ -1,34 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { logsApi } from "@/lib/api";
+import { useState } from "react";
 import { timeAgo } from "@/lib/utils";
 import { ShoppingCart, Users, Package, KeyRound, CreditCard, ShieldCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Activity } from "@/lib/types";
+import { ActivityLogType } from "@/lib/types";
 
-const activityIcons: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
-  order:    { icon: <ShoppingCart size={13} />, color: "#3b82f6", bg: "rgba(59,130,246,0.15)" },
-  customer: { icon: <Users size={13} />,        color: "#10b981", bg: "rgba(16,185,129,0.15)" },
-  product:  { icon: <Package size={13} />,      color: "#8b5cf6", bg: "rgba(139,92,246,0.15)" },
-  key:      { icon: <KeyRound size={13} />,     color: "#f59e0b", bg: "rgba(245,158,11,0.15)" },
-  payment:  { icon: <CreditCard size={13} />,   color: "#06b6d4", bg: "rgba(6,182,212,0.15)" },
-  admin:    { icon: <ShieldCheck size={13} />,  color: "#94a3b8", bg: "rgba(148,163,184,0.1)" },
+type Props = { activities: Activity[] };
+
+const activityIcons: Record<number, { icon: React.ReactNode; color: string; bg: string }> = {
+  [ActivityLogType.Order]:    { icon: <ShoppingCart size={13} />, color: "#3b82f6", bg: "rgba(59,130,246,0.15)" },
+  [ActivityLogType.Customer]: { icon: <Users size={13} />,        color: "#10b981", bg: "rgba(16,185,129,0.15)" },
+  [ActivityLogType.Product]:  { icon: <Package size={13} />,      color: "#8b5cf6", bg: "rgba(139,92,246,0.15)" },
+  [ActivityLogType.Key]:      { icon: <KeyRound size={13} />,     color: "#f59e0b", bg: "rgba(245,158,11,0.15)" },
+  [ActivityLogType.Payment]:  { icon: <CreditCard size={13} />,   color: "#06b6d4", bg: "rgba(6,182,212,0.15)" },
+  [ActivityLogType.Admin]:    { icon: <ShieldCheck size={13} />,  color: "#94a3b8", bg: "rgba(148,163,184,0.1)" },
 };
 
 const PAGE_SIZE = 4;
 
-export function RecentActivities() {
-  const [activities, setActivities] = useState<Activity[]>([]);
+export function RecentActivities({ activities }: Props) {
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    logsApi.list({ limit: 20 }).then(({ data }) => {
-      setActivities(data);
-    }).catch(() => {});
-  }, []);
-
   const totalPages = Math.max(1, Math.ceil(activities.length / PAGE_SIZE));
-  const pageItems = activities.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageItems  = activities.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="glass-card" style={{ padding: "20px 24px 0" }}>
@@ -42,10 +37,10 @@ export function RecentActivities() {
       <div>
         {pageItems.length === 0 ? (
           <div style={{ textAlign: "center", padding: "24px 0", color: "#334155", fontSize: 12 }}>
-            Chưa có hoạt động
+            {activities.length === 0 ? "Đang tải..." : "Chưa có hoạt động"}
           </div>
         ) : pageItems.map((activity, i) => {
-          const meta = activityIcons[activity.type] ?? activityIcons.admin;
+          const meta   = activityIcons[activity.type] ?? activityIcons[ActivityLogType.Admin];
           const isLast = i === pageItems.length - 1;
           return (
             <div key={activity.id} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 0", borderBottom: isLast ? "none" : "1px solid rgba(30,42,80,0.5)" }}>

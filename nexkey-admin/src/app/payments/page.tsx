@@ -26,7 +26,12 @@ type Gateway = {
   status: GatewayStatus;
 };
 
-type PaymentStatEntry = { method: string; count: number; total: number; percentage: number };
+import { PAYMENT_METHOD_LABEL, PaymentMethod } from "@/lib/types";
+type PaymentStatEntry = { method: PaymentMethod; count: number; total: number; percentage: number };
+const GATEWAY_TO_METHOD: Record<string, PaymentMethod> = {
+  vnpay: PaymentMethod.VNPay, momo: PaymentMethod.MoMo,
+  banking: PaymentMethod.Banking, card: PaymentMethod.Card, tienmat: PaymentMethod.TienMat,
+};
 
 /* ─── Static gateway metadata (display-only) ─────────────────── */
 const GW_META: Record<string, { icon: string; description: string; color: string }> = {
@@ -266,8 +271,8 @@ export default function PaymentsPage() {
   const activeCount    = gateways.filter(g => g.enabled).length;
   const connectedCount = gateways.filter(g => g.status === "connected").length;
 
-  const statMap: Record<string, PaymentStatEntry> = {};
-  paymentStats.forEach(p => { statMap[p.method.toLowerCase()] = p; });
+  const statMap: Record<number, PaymentStatEntry> = {};
+  paymentStats.forEach(p => { statMap[p.method] = p; });
 
   return (
     <AdminLayout title="Phương thức thanh toán" subtitle="Cấu hình và quản lý cổng thanh toán">
@@ -301,7 +306,7 @@ export default function PaymentsPage() {
                 <div key={stat.method} style={{ padding: "14px 16px", borderRadius: 12, background: `${cc}08`, border: `1px solid ${cc}20` }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                     <span style={{ fontSize: 18 }}>{icons[i]}</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0" }}>{stat.method}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0" }}>{PAYMENT_METHOD_LABEL[stat.method]}</span>
                   </div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: cc, marginBottom: 4 }}>{stat.percentage}%</div>
                   <div style={{ fontSize: 11, color: "#475569" }}>{stat.count.toLocaleString("vi-VN")} giao dịch</div>
@@ -322,7 +327,7 @@ export default function PaymentsPage() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {gateways.map(gw => {
-              const stat = paymentStats.find(p => p.method.toLowerCase() === gw.id || p.method === gw.name);
+              const stat = paymentStats.find(p => p.method === GATEWAY_TO_METHOD[gw.id]);
               return (
                 <GatewayCard
                   key={gw.id}

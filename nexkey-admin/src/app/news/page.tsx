@@ -11,23 +11,20 @@ import {
 } from "lucide-react";
 import { articlesApi } from "@/lib/api";
 import type { ApiMeta } from "@/lib/api";
-import type { Article, ArticleStatus, ArticleCategory } from "@/lib/types";
+import type { Article, ArticleCategory } from "@/lib/types";
+import { ArticleStatus, ARTICLE_STATUS_LABEL } from "@/lib/types";
 
 /* ─── Display label maps ─────────────────────────────────────────── */
-const STATUS_LABEL: Record<ArticleStatus, string> = {
-  DaXuatBan:  "Đã xuất bản",
-  Nhap:       "Nháp",
-  DaLenLich:  "Đã lên lịch",
+const STATUS_LABEL = ARTICLE_STATUS_LABEL;
+const TAB_TO_STATUS: Partial<Record<string, ArticleStatus>> = {
+  "Đã xuất bản": ArticleStatus.DaXuatBan,
+  "Nháp":        ArticleStatus.Nhap,
+  "Đã lên lịch": ArticleStatus.DaLenLich,
 };
-const STATUS_FROM_LABEL: Record<string, ArticleStatus> = {
-  "Đã xuất bản": "DaXuatBan",
-  "Nháp":        "Nhap",
-  "Đã lên lịch": "DaLenLich",
-};
-const PAGE_STATUS_LABEL: Record<ArticleStatus, { color: string; bg: string }> = {
-  DaXuatBan:  { color: "#10b981", bg: "rgba(16,185,129,0.12)" },
-  Nhap:       { color: "#64748b", bg: "rgba(100,116,139,0.12)" },
-  DaLenLich:  { color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+const PAGE_STATUS_LABEL: Record<number, { color: string; bg: string }> = {
+  [ArticleStatus.DaXuatBan]: { color: "#10b981", bg: "rgba(16,185,129,0.12)" },
+  [ArticleStatus.Nhap]:      { color: "#64748b", bg: "rgba(100,116,139,0.12)" },
+  [ArticleStatus.DaLenLich]: { color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
 };
 
 /* ─── Constants ──────────────────────────────────────────────────── */
@@ -117,7 +114,7 @@ function PreviewModal({ article, onClose, onEdit, onPublish }: { article: Articl
 
         <div style={{ padding: "14px 22px", borderTop: "1px solid rgba(30,42,80,0.6)", display: "flex", gap: 10, flexShrink: 0, background: "rgba(255,255,255,0.015)" }}>
           <Button variant="secondary" size="sm" onClick={onClose} style={{ flex: 1 }}>Đóng</Button>
-          {article.status !== "DaXuatBan" && (
+          {article.status !== ArticleStatus.DaXuatBan && (
             <Button variant="secondary" size="sm" onClick={onPublish} style={{ flex: 1 }}>Xuất bản</Button>
           )}
           <Button variant="primary" size="sm" icon={<Pencil size={12} />} style={{ flex: 1 }} onClick={onEdit}>Chỉnh sửa</Button>
@@ -138,7 +135,7 @@ function ArticleFormModal({ article, onSave, onClose }: {
   const [slug, setSlug]           = useState(article?.slug ?? "");
   const [excerpt, setExcerpt]     = useState(article?.excerpt ?? "");
   const [category, setCategory]   = useState<ArticleCategory>(article?.category ?? CATEGORIES[0]);
-  const [status, setStatus]       = useState<ArticleStatus>(article?.status ?? "Nhap");
+  const [status, setStatus]       = useState<ArticleStatus>(article?.status ?? ArticleStatus.Nhap);
   const [tags, setTags]           = useState(article?.tags.join(", ") ?? "");
   const [scheduledAt, setScheduledAt] = useState(article?.scheduledAt?.slice(0, 16) ?? "");
   const [errors, setErrors]       = useState<Record<string, string>>({});
@@ -149,7 +146,7 @@ function ArticleFormModal({ article, onSave, onClose }: {
     const e: Record<string, string> = {};
     if (!title.trim()) e.title = "Bắt buộc";
     if (!excerpt.trim()) e.excerpt = "Bắt buộc";
-    if (status === "DaLenLich" && !scheduledAt) e.scheduledAt = "Chọn thời gian";
+    if (status === ArticleStatus.DaLenLich && !scheduledAt) e.scheduledAt = "Chọn thời gian";
     return e;
   };
 
@@ -164,7 +161,7 @@ function ArticleFormModal({ article, onSave, onClose }: {
       category,
       status,
       tags: tags.split(",").map(t => t.trim()).filter(Boolean),
-      scheduledAt: status === "DaLenLich" && scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
+      scheduledAt: status === ArticleStatus.DaLenLich && scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
     });
     onClose();
   };
@@ -211,15 +208,15 @@ function ArticleFormModal({ article, onSave, onClose }: {
             </div>
             <div>
               <label style={labelStyle}>Trạng thái</label>
-              <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(e.target.value as ArticleStatus)}>
-                <option value="Nhap">Nháp</option>
-                <option value="DaXuatBan">Đã xuất bản</option>
-                <option value="DaLenLich">Đã lên lịch</option>
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(Number(e.target.value) as ArticleStatus)}>
+                <option value={ArticleStatus.Nhap}>Nháp</option>
+                <option value={ArticleStatus.DaXuatBan}>Đã xuất bản</option>
+                <option value={ArticleStatus.DaLenLich}>Đã lên lịch</option>
               </select>
             </div>
           </div>
 
-          {status === "DaLenLich" && (
+          {status === ArticleStatus.DaLenLich && (
             <div>
               <label style={labelStyle}>Thời gian xuất bản <span style={{ color: "#ef4444" }}>*</span></label>
               <input type="datetime-local" style={{ ...inputStyle, colorScheme: "dark", borderColor: errors.scheduledAt ? "#ef4444" : "rgba(30,42,80,0.9)" }} value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
@@ -365,7 +362,7 @@ export default function NewsPage() {
     setLoading(true);
     setApiError(null);
     try {
-      const statusParam = activeTab === "Tất cả" ? undefined : STATUS_FROM_LABEL[activeTab];
+      const statusParam = TAB_TO_STATUS[activeTab];
       const result = await articlesApi.list({ page, limit: PAGE_SIZE, search: search || undefined, status: statusParam });
       setArticles(result.data);
       setMeta(result.meta);
@@ -380,11 +377,11 @@ export default function NewsPage() {
 
   const count = (tab: string) => {
     if (tab === "Tất cả") return meta.total;
-    return articles.filter(a => STATUS_LABEL[a.status] === tab).length;
+    return articles.filter(a => a.status === TAB_TO_STATUS[tab]).length;
   };
   const totalViews = articles.reduce((s, a) => s + a.views, 0);
-  const publishedCount = articles.filter(a => a.status === "DaXuatBan").length;
-  const draftCount = articles.filter(a => a.status === "Nhap").length;
+  const publishedCount = articles.filter(a => a.status === ArticleStatus.DaXuatBan).length;
+  const draftCount = articles.filter(a => a.status === ArticleStatus.Nhap).length;
 
   const handleSave = useCallback(async (data: { id?: string; title: string; slug: string; excerpt: string; category: ArticleCategory; status: ArticleStatus; tags: string[]; scheduledAt?: string }) => {
     try {

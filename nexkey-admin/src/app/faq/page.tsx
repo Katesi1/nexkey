@@ -12,13 +12,11 @@ import {
 } from "lucide-react";
 import { faqApi } from "@/lib/api";
 import type { ApiMeta } from "@/lib/api";
-import type { FaqItem, FaqStatus, FaqCategory } from "@/lib/types";
+import type { FaqItem, FaqCategory } from "@/lib/types";
+import { FaqStatus, FAQ_STATUS_LABEL } from "@/lib/types";
 
 /* ─── Display label maps ─────────────────────────────────────────── */
-const STATUS_LABEL: Record<FaqStatus, string> = {
-  HienThi: "Hiển thị",
-  An:      "Ẩn",
-};
+const STATUS_LABEL = FAQ_STATUS_LABEL;
 
 /* ─── Constants ──────────────────────────────────────────────────── */
 const CATEGORIES: FaqCategory[] = ["Sản phẩm", "Thanh toán", "Key & Kích hoạt", "Bảo hành", "Khác"];
@@ -57,7 +55,7 @@ function FAQFormModal({ faq, onSave, onClose }: {
   const [question, setQuestion] = useState(faq?.question ?? "");
   const [answer, setAnswer]     = useState(faq?.answer ?? "");
   const [category, setCategory] = useState<FaqCategory>(faq?.category ?? CATEGORIES[0]);
-  const [status, setStatus]     = useState<FaqStatus>(faq?.status ?? "HienThi");
+  const [status, setStatus]     = useState<FaqStatus>(faq?.status ?? FaqStatus.HienThi);
   const [sortOrder, setSortOrder] = useState(String(faq?.sortOrder ?? 1));
   const [errors, setErrors]     = useState<Record<string, string>>({});
 
@@ -126,8 +124,8 @@ function FAQFormModal({ faq, onSave, onClose }: {
           <div>
             <label style={labelStyle}>Trạng thái</label>
             <div style={{ display: "flex", gap: 8 }}>
-              {(["HienThi", "An"] as FaqStatus[]).map(s => (
-                <button key={s} onClick={() => setStatus(s)} style={{ flex: 1, padding: "9px 0", borderRadius: 8, fontSize: 13, fontWeight: status === s ? 700 : 400, border: "1px solid", borderColor: status === s ? (s === "HienThi" ? "#10b981" : "#ef4444") : "rgba(30,42,80,0.8)", background: status === s ? (s === "HienThi" ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.1)") : "transparent", color: status === s ? (s === "HienThi" ? "#34d399" : "#f87171") : "#64748b", cursor: "pointer" }}>
+              {([FaqStatus.HienThi, FaqStatus.An] as FaqStatus[]).map(s => (
+                <button key={s} onClick={() => setStatus(s)} style={{ flex: 1, padding: "9px 0", borderRadius: 8, fontSize: 13, fontWeight: status === s ? 700 : 400, border: "1px solid", borderColor: status === s ? (s === FaqStatus.HienThi ? "#10b981" : "#ef4444") : "rgba(30,42,80,0.8)", background: status === s ? (s === FaqStatus.HienThi ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.1)") : "transparent", color: status === s ? (s === FaqStatus.HienThi ? "#34d399" : "#f87171") : "#64748b", cursor: "pointer" }}>
                   {STATUS_LABEL[s]}
                 </button>
               ))}
@@ -174,7 +172,7 @@ function FAQRow({ faq, onEdit, onDelete, onToggle }: {
 }) {
   const [expanded, setExpanded] = useState(false);
   const color = CAT_COLORS[faq.category] ?? "#64748b";
-  const isVisible = faq.status === "HienThi";
+  const isVisible = faq.status === FaqStatus.HienThi;
 
   return (
     <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: 12, border: "1px solid rgba(30,42,80,0.5)", overflow: "hidden", borderLeft: `3px solid ${color}40`, transition: "border-color 0.2s" }}>
@@ -280,7 +278,7 @@ export default function FAQPage() {
     if (tab === "Tất cả") return meta.total;
     return faqs.filter(f => f.category === tab).length;
   };
-  const visibleCnt = faqs.filter(f => f.status === "HienThi").length;
+  const visibleCnt = faqs.filter(f => f.status === FaqStatus.HienThi).length;
   const catCount = new Set(faqs.map(f => f.category)).size;
 
   const handleSave = useCallback(async (data: { id?: string; question: string; answer: string; category: FaqCategory; status: FaqStatus; sortOrder: number }) => {

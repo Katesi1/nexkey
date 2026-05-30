@@ -12,6 +12,7 @@ import { useAuth } from "@/store/AuthContext";
 import { auth, logsApi, getToken } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils";
 import type { Activity } from "@/lib/types";
+import { AdminStatus } from "@/lib/types";
 
 function Toast({ msg, ok, onClose }: { msg: string; ok: boolean; onClose: () => void }) {
   const onCloseRef = useRef(onClose);
@@ -109,7 +110,7 @@ export default function ProfilePage() {
               {[
                 { icon: <Mail size={13} />,   label: "Email",        value: email },
                 { icon: <Shield size={13} />, label: "Vai trò",      value: roleName },
-                { icon: <Clock size={13} />,  label: "Trạng thái",   value: user?.status === "HoatDong" ? "Hoạt động" : "Bị khóa" },
+                { icon: <Clock size={13} />,  label: "Trạng thái",   value: user?.status === AdminStatus.HoatDong ? "Hoạt động" : "Bị khóa" },
                 { icon: <Key size={13} />,    label: "ID",           value: user?.id ? user.id.slice(0, 8) + "..." : "—" },
               ].map(row => (
                 <div key={row.label} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>

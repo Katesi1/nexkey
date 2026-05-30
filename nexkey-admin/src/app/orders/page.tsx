@@ -8,24 +8,38 @@ import { Button, ActionButtons } from "@/components/ui/Button";
 import { ordersApi } from "@/lib/api";
 import type { ApiMeta } from "@/lib/api";
 import { formatVND, formatDateTime } from "@/lib/utils";
-import type { Order, OrderStatus } from "@/lib/types";
+import type { Order } from "@/lib/types";
+import { OrderStatus, PaymentMethod, ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL } from "@/lib/types";
 import {
   Search, Filter, Download, Plus, X, User, Package,
   CreditCard, KeyRound, RotateCcw, XCircle, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
-const TABS = ["Tất cả", "Đang xử lý", "Hoàn thành", "Đã hủy", "Hoàn tiền"] as const;
+const TAB_LABELS = ["Tất cả", "Đang xử lý", "Hoàn thành", "Đã hủy", "Hoàn tiền"] as const;
+type TabLabel = typeof TAB_LABELS[number];
+const TAB_TO_STATUS: Partial<Record<TabLabel, OrderStatus>> = {
+  "Đang xử lý": OrderStatus.DangXuLy,
+  "Hoàn thành":  OrderStatus.HoanThanh,
+  "Đã hủy":      OrderStatus.DaHuy,
+  "Hoàn tiền":   OrderStatus.HoanTien,
+};
 const PAGE_SIZE = 10;
 
-const PAYMENT_ICONS: Record<string, string> = {
-  VNPay: "💳", MoMo: "🎀", Banking: "🏦", Card: "💰", "Tiền mặt": "💵",
+const PAYMENT_ICONS: Record<number, string> = {
+  1: "💳", 2: "🎀", 3: "🏦", 4: "💰", 5: "💵",
 };
 
-const STATUS_OPTIONS: OrderStatus[] = ["Đang xử lý", "Hoàn thành", "Đã hủy", "Hoàn tiền", "Chờ thanh toán"];
-const PAYMENT_METHODS = ["VNPay", "MoMo", "Banking", "Card", "Tiền mặt"] as const;
+const STATUS_OPTIONS: OrderStatus[] = [
+  OrderStatus.DangXuLy, OrderStatus.HoanThanh, OrderStatus.DaHuy,
+  OrderStatus.HoanTien, OrderStatus.ChoThanhToan,
+];
+const PAYMENT_METHODS: PaymentMethod[] = [
+  PaymentMethod.VNPay, PaymentMethod.MoMo, PaymentMethod.Banking,
+  PaymentMethod.Card, PaymentMethod.TienMat,
+];
 
 type Filters = {
-  payments: string[];
+  payments: PaymentMethod[];
   minAmount: string;
   maxAmount: string;
 };
@@ -58,12 +72,12 @@ function Modal({ onClose, children }: { onClose: () => void; children: React.Rea
 }
 
 /* ─── Status color map ───────────────────────────────────────── */
-const STATUS_COLORS: Record<string, { color: string; bg: string; glow: string }> = {
-  "Hoàn thành":     { color: "#10b981", bg: "rgba(16,185,129,0.12)",  glow: "rgba(16,185,129,0.25)" },
-  "Đang xử lý":     { color: "#3b82f6", bg: "rgba(59,130,246,0.12)",  glow: "rgba(59,130,246,0.25)" },
-  "Đã hủy":         { color: "#ef4444", bg: "rgba(239,68,68,0.12)",   glow: "rgba(239,68,68,0.25)" },
-  "Hoàn tiền":      { color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  glow: "rgba(245,158,11,0.25)" },
-  "Chờ thanh toán": { color: "#8b5cf6", bg: "rgba(139,92,246,0.12)",  glow: "rgba(139,92,246,0.25)" },
+const STATUS_COLORS: Record<number, { color: string; bg: string; glow: string }> = {
+  [OrderStatus.HoanThanh]:    { color: "#10b981", bg: "rgba(16,185,129,0.12)",  glow: "rgba(16,185,129,0.25)" },
+  [OrderStatus.DangXuLy]:     { color: "#3b82f6", bg: "rgba(59,130,246,0.12)",  glow: "rgba(59,130,246,0.25)" },
+  [OrderStatus.DaHuy]:        { color: "#ef4444", bg: "rgba(239,68,68,0.12)",   glow: "rgba(239,68,68,0.25)" },
+  [OrderStatus.HoanTien]:     { color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  glow: "rgba(245,158,11,0.25)" },
+  [OrderStatus.ChoThanhToan]: { color: "#8b5cf6", bg: "rgba(139,92,246,0.12)",  glow: "rgba(139,92,246,0.25)" },
 };
 
 /* ─── Section label ──────────────────────────────────────────── */
@@ -85,7 +99,7 @@ function SectionLabel({ icon, children }: { icon: React.ReactNode; children: str
 
 /* ─── Order Detail Modal ─────────────────────────────────────── */
 function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => void }) {
-  const sc = STATUS_COLORS[order.status] ?? STATUS_COLORS["Đang xử lý"];
+  const sc = STATUS_COLORS[order.status] ?? STATUS_COLORS[OrderStatus.DangXuLy];
 
   return (
     <Modal onClose={onClose}>
@@ -126,7 +140,7 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
                 boxShadow: `0 0 12px ${sc.glow}`,
               }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc.color, display: "inline-block" }} />
-                {order.status}
+                {ORDER_STATUS_LABEL[order.status]}
               </span>
               <span style={{ fontSize: 11, color: "#334155" }}>{formatDateTime(order.createdAt)}</span>
             </div>
@@ -211,7 +225,7 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 12, color: "#64748b" }}>Phương thức</span>
                 <span style={{ fontSize: 12, color: "#cbd5e1", fontWeight: 500 }}>
-                  {PAYMENT_ICONS[order.paymentMethod]} {order.paymentMethod}
+                  {PAYMENT_ICONS[order.paymentMethod]} {PAYMENT_METHOD_LABEL[order.paymentMethod]}
                 </span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -308,14 +322,14 @@ function OrderEditModal({ order, onSave, onClose }: {
           </label>
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value as OrderStatus)}
+            onChange={(e) => setStatus(Number(e.target.value) as OrderStatus)}
             style={{
               width: "100%", padding: "10px 12px", borderRadius: 8,
               background: "#060a15", border: "1px solid rgba(30,42,80,0.8)",
               color: "#e2e8f0", fontSize: 13, cursor: "pointer", outline: "none",
             }}
           >
-            {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            {STATUS_OPTIONS.map(s => <option key={s} value={s}>{ORDER_STATUS_LABEL[s]}</option>)}
           </select>
         </div>
 
@@ -384,7 +398,7 @@ function FilterDropdown({
     return num.toLocaleString("vi-VN");
   };
 
-  const togglePayment = (method: string) => {
+  const togglePayment = (method: PaymentMethod) => {
     const next = filters.payments.includes(method)
       ? filters.payments.filter(p => p !== method)
       : [...filters.payments, method];
@@ -415,7 +429,7 @@ function FilterDropdown({
                 style={{ accentColor: "#3b82f6", width: 14, height: 14, cursor: "pointer" }}
               />
               <span style={{ fontSize: 12, color: "#cbd5e1" }}>
-                {PAYMENT_ICONS[method]} {method}
+                {PAYMENT_ICONS[method]} {PAYMENT_METHOD_LABEL[method]}
               </span>
             </label>
           ))}
@@ -551,7 +565,7 @@ export default function OrdersPage() {
     setLoading(true);
     setApiError("");
     try {
-      const statusParam = activeTab === "Tất cả" ? undefined : activeTab;
+      const statusParam = TAB_TO_STATUS[activeTab as TabLabel];
       const paymentParam = filters.payments.length === 1 ? filters.payments[0] : undefined;
       const minAmount = filters.minAmount ? Number(filters.minAmount.replace(/\./g, "")) : undefined;
       const maxAmount = filters.maxAmount ? Number(filters.maxAmount.replace(/\./g, "")) : undefined;
@@ -562,9 +576,9 @@ export default function OrdersPage() {
           limit: PAGE_SIZE,
           search: search || undefined,
           status: statusParam,
-          payment_method: paymentParam,
-          min_amount: minAmount,
-          max_amount: maxAmount,
+          paymentMethod: paymentParam,
+          minAmount: minAmount,
+          maxAmount: maxAmount,
         }),
         ordersApi.stats(),
       ]);
@@ -704,7 +718,7 @@ export default function OrdersPage() {
           </div>
 
           <div style={{ display: "flex", gap: 0, marginTop: 14, borderBottom: "1px solid rgba(30,42,80,0.6)" }}>
-            {TABS.map((tab) => (
+            {TAB_LABELS.map((tab) => (
               <button
                 key={tab}
                 onClick={() => handleTabChange(tab)}
@@ -777,7 +791,7 @@ export default function OrdersPage() {
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <span style={{ fontSize: 14 }}>{PAYMENT_ICONS[order.paymentMethod]}</span>
-                      <span style={{ fontSize: 11.5, color: "#64748b" }}>{order.paymentMethod}</span>
+                      <span style={{ fontSize: 11.5, color: "#64748b" }}>{PAYMENT_METHOD_LABEL[order.paymentMethod]}</span>
                     </div>
                   </td>
                   <td><OrderStatusBadge status={order.status} /></td>

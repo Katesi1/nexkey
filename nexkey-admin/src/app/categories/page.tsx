@@ -6,7 +6,8 @@ import { StatCard, StatsGrid } from "@/components/ui/StatCard";
 import { Button, ActionButtons } from "@/components/ui/Button";
 import { categoriesApi } from "@/lib/api";
 import { Search, Plus, X, Package, Tag, Hash, ChevronLeft, ChevronRight } from "lucide-react";
-import type { Category, CategoryStatus } from "@/lib/types";
+import { CategoryStatus, CATEGORY_STATUS_LABEL } from "@/lib/types";
+import type { Category } from "@/lib/types";
 
 /* ─── Constants ──────────────────────────────────────────────── */
 const COLOR_PRESETS = [
@@ -58,7 +59,7 @@ function SectionLabel({ icon, children }: { icon: React.ReactNode; children: str
 
 /* ─── Category Detail Modal ──────────────────────────────────── */
 function CategoryDetailModal({ cat, onClose, onEdit }: { cat: Category; onClose: () => void; onEdit: () => void }) {
-  const isVisible = cat.status === "Hiển thị";
+  const isVisible = cat.status === CategoryStatus.HienThi;
   return (
     <Modal onClose={onClose}>
       <div style={{ width: 460, maxWidth: "92vw", maxHeight: "90vh", background: "#080d1c", border: "1px solid rgba(30,42,80,0.7)", borderRadius: 18, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 32px 80px rgba(0,0,0,0.7)" }}>
@@ -75,7 +76,7 @@ function CategoryDetailModal({ cat, onClose, onEdit }: { cat: Category; onClose:
               <div style={{ fontSize: 11, fontFamily: "monospace", color: "#475569", marginTop: 4 }}>/{cat.slug}</div>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 6, padding: "2px 10px", borderRadius: 99, fontSize: 11, fontWeight: 700, background: isVisible ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)", color: isVisible ? "#10b981" : "#ef4444" }}>
                 <span style={{ width: 5, height: 5, borderRadius: "50%", background: isVisible ? "#10b981" : "#ef4444", display: "inline-block" }} />
-                {cat.status}
+                {CATEGORY_STATUS_LABEL[cat.status]}
               </span>
             </div>
           </div>
@@ -201,9 +202,9 @@ function CategoryEditModal({ cat, onSave, onClose }: {
           </div>
           <div>
             <label style={labelStyle}>Trạng thái</label>
-            <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(e.target.value as CategoryStatus)}>
-              <option value="Hiển thị">Hiển thị</option>
-              <option value="Ẩn">Ẩn</option>
+            <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(Number(e.target.value) as CategoryStatus)}>
+              <option value={CategoryStatus.HienThi}>Hiển thị</option>
+              <option value={CategoryStatus.An}>Ẩn</option>
             </select>
           </div>
         </div>
@@ -222,7 +223,7 @@ function CreateCategoryModal({ onCreate, onClose }: { onCreate: (body: Record<st
   const [slug, setSlug]     = useState("");
   const [icon, setIcon]     = useState("📦");
   const [color, setColor]   = useState("#3b82f6");
-  const [status, setStatus] = useState<CategoryStatus>("Hiển thị");
+  const [status, setStatus] = useState<CategoryStatus>(CategoryStatus.HienThi);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const inputStyle: React.CSSProperties = { width: "100%", padding: "9px 12px", borderRadius: 8, fontSize: 13, background: "#060a15", border: "1px solid rgba(30,42,80,0.9)", color: "#e2e8f0", outline: "none", boxSizing: "border-box" };
@@ -274,9 +275,9 @@ function CreateCategoryModal({ onCreate, onClose }: { onCreate: (body: Record<st
               </div>
               <div>
                 <label style={labelStyle}>Trạng thái</label>
-                <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(e.target.value as CategoryStatus)}>
-                  <option value="Hiển thị">Hiển thị</option>
-                  <option value="Ẩn">Ẩn</option>
+                <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(Number(e.target.value) as CategoryStatus)}>
+                  <option value={CategoryStatus.HienThi}>Hiển thị</option>
+                  <option value={CategoryStatus.An}>Ẩn</option>
                 </select>
               </div>
             </div>
@@ -360,7 +361,7 @@ export default function CategoriesPage() {
     try {
       const data = await categoriesApi.list();
       setCategories(data);
-      setToggles(Object.fromEntries(data.map(c => [c.id, c.status === "Hiển thị"])));
+      setToggles(Object.fromEntries(data.map(c => [c.id, c.status === CategoryStatus.HienThi])));
     } catch (err) {
       setApiError(err instanceof Error ? err.message : "Có lỗi xảy ra");
     } finally {
@@ -415,8 +416,8 @@ export default function CategoriesPage() {
     }
   }, [fetchData]);
 
-  const visibleCount = categories.filter(c => c.status === "Hiển thị").length;
-  const hiddenCount  = categories.filter(c => c.status === "Ẩn").length;
+  const visibleCount = categories.filter(c => c.status === CategoryStatus.HienThi).length;
+  const hiddenCount  = categories.filter(c => c.status === CategoryStatus.An).length;
 
   return (
     <AdminLayout title="Danh mục" subtitle="Quản lý danh mục sản phẩm">

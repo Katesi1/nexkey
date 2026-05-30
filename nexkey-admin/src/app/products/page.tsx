@@ -7,8 +7,11 @@ import { ProductStatusBadge } from "@/components/ui/Badge";
 import { Button, ActionButtons } from "@/components/ui/Button";
 import { productsApi, categoriesApi } from "@/lib/api";
 import { formatVND } from "@/lib/utils";
-import type { Product, ProductStatus, ProductType } from "@/lib/types";
-import type { Category } from "@/lib/types";
+import type { Product, Category } from "@/lib/types";
+import {
+  ProductStatus, ProductType,
+  PRODUCT_STATUS_LABEL, PRODUCT_TYPE_LABEL,
+} from "@/lib/types";
 import {
   Search, Filter, Plus, Download, X,
   Package, DollarSign, BarChart2, Tag,
@@ -18,20 +21,34 @@ import {
 /* ─── Constants ──────────────────────────────────────────────── */
 const TABS = ["Tất cả", "Đang bán", "Hết hàng", "Tạm ngưng"] as const;
 const PAGE_SIZE = 10;
-const PRODUCT_TYPES: ProductType[] = ["Windows Key", "Office Key", "Subscription", "Account", "Antivirus"];
-const STATUS_OPTIONS: ProductStatus[] = ["Đang bán", "Hết hàng", "Tạm ngưng", "Nháp"];
-const TYPE_ICONS: Record<string, string> = {
-  "Windows Key": "🪟", "Office Key": "📊", "Subscription": "🔄",
-  "Account": "👤", "Antivirus": "🛡️",
+const PRODUCT_TYPES: ProductType[] = [
+  ProductType.WindowsKey, ProductType.OfficeKey, ProductType.Subscription,
+  ProductType.Account, ProductType.Antivirus,
+];
+const STATUS_OPTIONS: ProductStatus[] = [
+  ProductStatus.DangBan, ProductStatus.HetHang, ProductStatus.TamNgung, ProductStatus.Nhap,
+];
+const TYPE_ICONS: Record<number, string> = {
+  [ProductType.WindowsKey]:   "🪟",
+  [ProductType.OfficeKey]:    "📊",
+  [ProductType.Subscription]: "🔄",
+  [ProductType.Account]:      "👤",
+  [ProductType.Antivirus]:    "🛡️",
 };
-const STATUS_COLORS: Record<string, { color: string; bg: string; glow: string }> = {
-  "Đang bán":  { color: "#10b981", bg: "rgba(16,185,129,0.12)", glow: "rgba(16,185,129,0.25)" },
-  "Hết hàng":  { color: "#ef4444", bg: "rgba(239,68,68,0.12)",  glow: "rgba(239,68,68,0.25)" },
-  "Tạm ngưng": { color: "#f59e0b", bg: "rgba(245,158,11,0.12)", glow: "rgba(245,158,11,0.25)" },
-  "Nháp":      { color: "#64748b", bg: "rgba(100,116,139,0.12)", glow: "rgba(100,116,139,0.2)" },
+const STATUS_COLORS: Record<number, { color: string; bg: string; glow: string }> = {
+  [ProductStatus.DangBan]:  { color: "#10b981", bg: "rgba(16,185,129,0.12)", glow: "rgba(16,185,129,0.25)" },
+  [ProductStatus.HetHang]:  { color: "#ef4444", bg: "rgba(239,68,68,0.12)",  glow: "rgba(239,68,68,0.25)" },
+  [ProductStatus.TamNgung]: { color: "#f59e0b", bg: "rgba(245,158,11,0.12)", glow: "rgba(245,158,11,0.25)" },
+  [ProductStatus.Nhap]:     { color: "#64748b", bg: "rgba(100,116,139,0.12)", glow: "rgba(100,116,139,0.2)" },
 };
 
-type Filters = { types: string[] };
+const TAB_TO_STATUS: Partial<Record<string, ProductStatus>> = {
+  "Đang bán":  ProductStatus.DangBan,
+  "Hết hàng":  ProductStatus.HetHang,
+  "Tạm ngưng": ProductStatus.TamNgung,
+};
+
+type Filters = { types: ProductType[] };
 const DEFAULT_FILTERS: Filters = { types: [] };
 
 /* ─── Modal wrapper ──────────────────────────────────────────── */
@@ -62,7 +79,7 @@ function SectionLabel({ icon, children }: { icon: React.ReactNode; children: str
 
 /* ─── Product Detail Modal ───────────────────────────────────── */
 function ProductDetailModal({ product, onClose, onEdit }: { product: Product; onClose: () => void; onEdit: () => void }) {
-  const sc = STATUS_COLORS[product.status] ?? STATUS_COLORS["Tạm ngưng"];
+  const sc = STATUS_COLORS[product.status] ?? STATUS_COLORS[ProductStatus.TamNgung];
   const stockColor = product.stock === 0 ? "#ef4444" : product.stock < 20 ? "#f59e0b" : "#34d399";
 
   return (
@@ -82,7 +99,7 @@ function ProductDetailModal({ product, onClose, onEdit }: { product: Product; on
                 <span style={{ fontFamily: "monospace", fontSize: 11, color: "#475569" }}>{product.sku}</span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 10px", borderRadius: 99, background: sc.bg, color: sc.color, fontSize: 11, fontWeight: 700, boxShadow: `0 0 10px ${sc.glow}` }}>
                   <span style={{ width: 5, height: 5, borderRadius: "50%", background: sc.color, display: "inline-block" }} />
-                  {product.status}
+                  {PRODUCT_STATUS_LABEL[product.status]}
                 </span>
               </div>
             </div>
@@ -128,7 +145,7 @@ function ProductDetailModal({ product, onClose, onEdit }: { product: Product; on
               {[
                 { label: "Đã bán", value: product.sold.toLocaleString("vi-VN") + " sản phẩm", color: "#e2e8f0" },
                 { label: "Danh mục", value: product.categoryName, color: "#cbd5e1" },
-                { label: "Loại", value: product.type, color: "#a78bfa", badge: true },
+                { label: "Loại", value: PRODUCT_TYPE_LABEL[product.type], color: "#a78bfa", badge: true },
                 { label: "Doanh thu ước tính", value: formatVND(product.price * product.sold), color: "#34d399" },
               ].map(row => (
                 <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -194,7 +211,7 @@ function ProductEditModal({ product, onSave, onClose }: {
         </div>
         <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
           {[
-            { label: "Trạng thái", el: <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(e.target.value as ProductStatus)}>{STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}</select> },
+            { label: "Trạng thái", el: <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(Number(e.target.value) as ProductStatus)}>{STATUS_OPTIONS.map(s => <option key={s} value={s}>{PRODUCT_STATUS_LABEL[s]}</option>)}</select> },
             { label: "Giá bán (đ)", el: <input style={inputStyle} value={price} onChange={e => setPrice(fmtPrice(e.target.value))} placeholder="0" /> },
             { label: "Tồn kho", el: <input style={inputStyle} type="text" inputMode="numeric" value={stock} onChange={e => setStock(e.target.value.replace(/\D/g, ""))} placeholder="0" /> },
           ].map(({ label, el }) => (
@@ -250,11 +267,11 @@ function CreateProductModal({ categories, onCreate, onClose }: {
   const [name, setName]             = useState("");
   const [sku, setSku]               = useState("");
   const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "");
-  const [type, setType]             = useState<ProductType>("Windows Key");
+  const [type, setType]             = useState<ProductType>(ProductType.WindowsKey);
   const [price, setPrice]           = useState("");
   const [comparePrice, setComparePrice] = useState("");
   const [stock, setStock]           = useState("0");
-  const [status, setStatus]         = useState<ProductStatus>("Đang bán");
+  const [status, setStatus]         = useState<ProductStatus>(ProductStatus.DangBan);
   const [errors, setErrors]         = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -330,8 +347,8 @@ function CreateProductModal({ categories, onCreate, onClose }: {
                 </div>
                 <div>
                   <label style={labelStyle}>Loại sản phẩm</label>
-                  <select style={{ ...inputStyle, cursor: "pointer" }} value={type} onChange={e => setType(e.target.value as ProductType)}>
-                    {PRODUCT_TYPES.map(t => <option key={t} value={t}>{TYPE_ICONS[t]} {t}</option>)}
+                  <select style={{ ...inputStyle, cursor: "pointer" }} value={type} onChange={e => setType(Number(e.target.value) as ProductType)}>
+                    {PRODUCT_TYPES.map(t => <option key={t} value={t}>{TYPE_ICONS[t]} {PRODUCT_TYPE_LABEL[t]}</option>)}
                   </select>
                 </div>
               </div>
@@ -364,8 +381,8 @@ function CreateProductModal({ categories, onCreate, onClose }: {
             </div>
             <div style={{ marginTop: 12 }}>
               <label style={labelStyle}>Trạng thái</label>
-              <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(e.target.value as ProductStatus)}>
-                {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={status} onChange={e => setStatus(Number(e.target.value) as ProductStatus)}>
+                {STATUS_OPTIONS.map(s => <option key={s} value={s}>{PRODUCT_STATUS_LABEL[s]}</option>)}
               </select>
             </div>
           </div>
@@ -387,7 +404,7 @@ function FilterDropdown({ filters, onChange, onClear, onClose, top, right }: {
   filters: Filters; onChange: (f: Filters) => void;
   onClear: () => void; onClose: () => void; top: number; right: number;
 }) {
-  const toggle = (type: string) => {
+  const toggle = (type: ProductType) => {
     const next = filters.types.includes(type) ? filters.types.filter(t => t !== type) : [...filters.types, type];
     onChange({ ...filters, types: next });
   };
@@ -398,7 +415,7 @@ function FilterDropdown({ filters, onChange, onClear, onClose, top, right }: {
         {PRODUCT_TYPES.map(t => (
           <label key={t} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
             <input type="checkbox" checked={filters.types.includes(t)} onChange={() => toggle(t)} style={{ accentColor: "#3b82f6", width: 14, height: 14, cursor: "pointer" }} />
-            <span style={{ fontSize: 12, color: "#cbd5e1" }}>{TYPE_ICONS[t]} {t}</span>
+            <span style={{ fontSize: 12, color: "#cbd5e1" }}>{TYPE_ICONS[t]} {PRODUCT_TYPE_LABEL[t]}</span>
           </label>
         ))}
       </div>
@@ -461,7 +478,7 @@ export default function ProductsPage() {
     setLoading(true);
     setApiError("");
     try {
-      const statusParam = activeTab === "Tất cả" ? undefined : activeTab;
+      const statusParam = TAB_TO_STATUS[activeTab];
       const typeParam   = filters.types.length === 1 ? filters.types[0] : undefined;
 
       const result = await productsApi.list({
@@ -525,9 +542,9 @@ export default function ProductsPage() {
 
         <StatsGrid cols={4}>
           <StatCard label="Tổng sản phẩm" value={total} change={6.3} changeLabel="so với tháng trước" icon="package" color="blue" />
-          <StatCard label="Đang bán" value={products.filter(p => p.status === "Đang bán").length} change={4} changeLabel="so với tháng trước" icon="package" color="green" />
-          <StatCard label="Hết hàng" value={products.filter(p => p.status === "Hết hàng").length} change={-1} changeLabel="so với tháng trước" icon="alert" color="rose" />
-          <StatCard label="Tạm ngưng" value={products.filter(p => p.status === "Tạm ngưng").length} change={0} changeLabel="so với tháng trước" icon="package" color="amber" />
+          <StatCard label="Đang bán" value={products.filter(p => p.status === ProductStatus.DangBan).length} change={4} changeLabel="so với tháng trước" icon="package" color="green" />
+          <StatCard label="Hết hàng" value={products.filter(p => p.status === ProductStatus.HetHang).length} change={-1} changeLabel="so với tháng trước" icon="alert" color="rose" />
+          <StatCard label="Tạm ngưng" value={products.filter(p => p.status === ProductStatus.TamNgung).length} change={0} changeLabel="so với tháng trước" icon="package" color="amber" />
         </StatsGrid>
 
         {/* Toolbar + Tabs */}
@@ -557,7 +574,7 @@ export default function ProductsPage() {
               <button key={tab} onClick={() => handleTabChange(tab)} className={`tab-btn ${activeTab === tab ? "tab-btn-active" : "tab-btn-inactive"}`}>
                 {tab}
                 <span className={`tab-count ${activeTab === tab ? "tab-count-active" : "tab-count-inactive"}`}>
-                  {tab === "Tất cả" ? total : products.filter(p => p.status === tab).length}
+                  {tab === "Tất cả" ? total : products.filter(p => p.status === TAB_TO_STATUS[tab]).length}
                 </span>
               </button>
             ))}
@@ -595,7 +612,7 @@ export default function ProductsPage() {
                   </td>
                   <td><span style={{ fontFamily: "monospace", color: "#64748b", fontSize: 11 }}>{product.sku}</span></td>
                   <td><span style={{ fontSize: 12, color: "#94a3b8" }}>{product.categoryName}</span></td>
-                  <td><span style={{ background: "rgba(139,92,246,0.1)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.2)", padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 600 }}>{product.type}</span></td>
+                  <td><span style={{ background: "rgba(139,92,246,0.1)", color: "#a78bfa", border: "1px solid rgba(139,92,246,0.2)", padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 600 }}>{PRODUCT_TYPE_LABEL[product.type]}</span></td>
                   <td><span style={{ fontWeight: 700, color: "#e2e8f0", fontSize: 13 }}>{formatVND(product.price)}</span></td>
                   <td><span style={{ fontWeight: 700, fontSize: 14, color: product.stock === 0 ? "#ef4444" : product.stock < 20 ? "#f59e0b" : "#34d399" }}>{product.stock}</span></td>
                   <td><span style={{ fontSize: 12, color: "#94a3b8" }}>{product.sold.toLocaleString("vi-VN")}</span></td>

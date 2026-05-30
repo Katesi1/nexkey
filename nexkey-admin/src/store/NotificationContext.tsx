@@ -7,7 +7,7 @@ import { logsApi, getToken } from "@/lib/api";
 
 export type NotifEntry = {
   id: string;
-  type: string;
+  type: number;
   title: string;
   description: string;
   createdAt: string;
@@ -29,7 +29,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!getToken()) return;
     logsApi
-      .list({ limit: 20, is_read: false })
+      .list({ limit: 20, isRead: false })
       .then(({ data }) => {
         setNotifications(
           data.map(a => ({

@@ -275,7 +275,7 @@ export const ordersApi = {
 export const productsApi = {
   list: async (params: {
     page?: number; limit?: number; search?: string;
-    status?: string; categoryId?: string; type?: string;
+    status?: number; categoryId?: string; type?: number;
   } = {}) => {
     const res = await get<unknown[]>("/products", params as Params);
     return { data: res.data.map(mapProduct), meta: res.meta! };
@@ -291,7 +291,7 @@ export const productsApi = {
 
 // ─── Categories ────────────────────────────────────────────────────────────
 export const categoriesApi = {
-  list: (params?: { status?: string; search?: string }) =>
+  list: (params?: { status?: number; search?: string }) =>
     get<unknown[]>("/categories", params as Params).then(r => r.data.map(mapCategory)),
   get: (id: string) => get<unknown>(`/categories/${id}`).then(r => mapCategory(r.data)),
   create: (body: Record<string, unknown>) => post<unknown>("/categories", body),
@@ -304,7 +304,7 @@ export const categoriesApi = {
 export const customersApi = {
   list: async (params: {
     page?: number; limit?: number; search?: string;
-    status?: string; minSpending?: number; maxSpending?: number;
+    status?: number; minSpending?: number; maxSpending?: number;
   } = {}) => {
     const res = await get<unknown[]>("/customers", params as Params);
     return { data: res.data.map(mapCustomer), meta: res.meta! };
@@ -319,7 +319,7 @@ export const customersApi = {
 
 // ─── Suppliers ─────────────────────────────────────────────────────────────
 export const suppliersApi = {
-  list: (params?: { status?: string; search?: string; hasDebt?: boolean }) =>
+  list: (params?: { status?: number; search?: string; hasDebt?: boolean }) =>
     get<unknown[]>("/suppliers", params as Params).then(r => r.data.map(mapSupplier)),
   get: (id: string) => get<unknown>(`/suppliers/${id}`).then(r => mapSupplier(r.data)),
   create: (body: Record<string, unknown>) => post<unknown>("/suppliers", body),
@@ -332,7 +332,7 @@ export const suppliersApi = {
 // ─── Warehouse ─────────────────────────────────────────────────────────────
 export const warehouseApi = {
   list: async (params: {
-    page?: number; limit?: number; search?: string; warehouse?: string; status?: string;
+    page?: number; limit?: number; search?: string; warehouse?: string; status?: number;
   } = {}) => {
     const res = await get<unknown[]>("/warehouse", params as Params);
     return { data: res.data.map(mapWarehouse), meta: res.meta! };
@@ -353,7 +353,7 @@ export const warehouseApi = {
 export const keysApi = {
   list: async (params: {
     page?: number; limit?: number; search?: string;
-    status?: string; productId?: string;
+    status?: number; productId?: string;
   } = {}) => {
     const res = await get<unknown[]>("/keys", params as Params);
     return { data: res.data.map(mapKey), meta: res.meta! };
@@ -390,7 +390,7 @@ export const bannersApi = {
 export const articlesApi = {
   list: (params?: {
     page?: number; limit?: number; search?: string;
-    status?: string; category?: string;
+    status?: number; category?: string;
   }) =>
     get<Article[]>("/articles", params as Params).then(r => ({ data: r.data, meta: r.meta! })),
   get: (id: string) => get<Article>(`/articles/${id}`).then(r => r.data),
