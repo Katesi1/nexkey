@@ -3,7 +3,7 @@
 import {
   createContext, useContext, useState, useEffect, useCallback, type ReactNode,
 } from "react";
-import { logsApi } from "@/lib/api";
+import { logsApi, getToken } from "@/lib/api";
 
 export type NotifEntry = {
   id: string;
@@ -27,6 +27,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<NotifEntry[]>([]);
 
   useEffect(() => {
+    if (!getToken()) return;
     logsApi
       .list({ limit: 20, is_read: false })
       .then(({ data }) => {

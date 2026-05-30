@@ -12,8 +12,8 @@ public class OrderDto
     public string CustomerPhone { get; set; } = null!;
     public long Total { get; set; }
     public long Discount { get; set; }
-    public string PaymentMethod { get; set; } = null!;
-    public string Status { get; set; } = null!;
+    public PaymentMethod PaymentMethod { get; set; }
+    public OrderStatus Status { get; set; }
     public string? Note { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

@@ -1,10 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Models.DTOs.Payments;
 using NexKey.Api.Interfaces;
 
 namespace NexKey.Api.Controllers;
 
-[Route("v1/payments")]
+[Route("api/payments")]
 public class PaymentsController : BaseController
 {
     private readonly IPaymentGatewayService _service;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatCard, StatsGrid } from "@/components/ui/StatCard";
 import { paymentsApi } from "@/lib/api";
@@ -39,7 +39,9 @@ const GW_META: Record<string, { icon: string; description: string; color: string
 /* ─── Toast ──────────────────────────────────────────────────── */
 type ToastType = "success" | "error" | "info";
 function Toast({ msg, type, onClose }: { msg: string; type: ToastType; onClose: () => void }) {
-  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
+  useEffect(() => { const t = setTimeout(() => onCloseRef.current(), 3500); return () => clearTimeout(t); }, []);
   const cfg = {
     success: { bg: "#064e3b", border: "#10b981", icon: <CheckCircle size={15} style={{ color: "#10b981" }} /> },
     error:   { bg: "#450a0a", border: "#ef4444", icon: <AlertCircle size={15} style={{ color: "#ef4444" }} /> },

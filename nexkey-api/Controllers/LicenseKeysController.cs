@@ -1,10 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Models.DTOs.Keys;
 using NexKey.Api.Interfaces;
 
 namespace NexKey.Api.Controllers;
 
-[Route("v1/keys")]
+[Route("api/keys")]
 public class LicenseKeysController : BaseController
 {
     private readonly ILicenseKeyService _service;
@@ -41,7 +41,7 @@ public class LicenseKeysController : BaseController
     public async Task<IActionResult> Delete(string id)
     {
         await _service.DeleteAsync(id);
-        return Ok(new { message = "Đã xóa key" });
+        return Ok(new { message = "ÄÃ£ xÃ³a key" });
     }
 
     [HttpPatch("{id}/lock")]

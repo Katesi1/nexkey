@@ -117,6 +117,6 @@ public class WarehouseService : IWarehouseService
         Id = w.Id, ProductId = w.ProductId, ProductName = w.ProductName, Sku = w.Sku,
         Warehouse = w.Warehouse, Quantity = w.Quantity, Unit = w.Unit,
         CostPrice = w.CostPrice, InventoryValue = w.InventoryValue,
-        Status = w.Status.ToString(), UpdatedAt = w.UpdatedAt
+        Status = w.Status, UpdatedAt = w.UpdatedAt
     };
 }

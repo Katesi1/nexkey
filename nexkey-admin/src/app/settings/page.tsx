@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/Button";
 import { settingsApi } from "@/lib/api";
@@ -55,10 +55,9 @@ type TabId = (typeof TABS)[number]["id"];
 /* ─── Toast ──────────────────────────────────────────────────── */
 type ToastType = "success" | "error" | "info";
 function Toast({ msg, type, onClose }: { msg: string; type: ToastType; onClose: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onClose, 3500);
-    return () => clearTimeout(t);
-  }, [onClose]);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
+  useEffect(() => { const t = setTimeout(() => onCloseRef.current(), 3500); return () => clearTimeout(t); }, []);
   const colors = { success: { bg: "#064e3b", border: "#10b981", icon: <CheckCircle size={16} style={{ color: "#10b981" }} /> }, error: { bg: "#450a0a", border: "#ef4444", icon: <AlertCircle size={16} style={{ color: "#ef4444" }} /> }, info: { bg: "#0c1a40", border: "#3b82f6", icon: <Mail size={16} style={{ color: "#3b82f6" }} /> } };
   const c = colors[type];
   return (

@@ -1,10 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Models.DTOs.Orders;
 using NexKey.Api.Interfaces;
 
 namespace NexKey.Api.Controllers;
 
-[Route("v1/orders")]
+[Route("api/orders")]
 public class OrdersController : BaseController
 {
     private readonly IOrderService _service;
@@ -47,7 +47,7 @@ public class OrdersController : BaseController
     public async Task<IActionResult> Delete(string id)
     {
         await _service.DeleteAsync(id);
-        return Ok(new { message = "Đã xóa đơn hàng" });
+        return Ok(new { message = "ÄÃ£ xÃ³a Ä‘Æ¡n hÃ ng" });
     }
 
     [HttpPost("{id}/refund")]

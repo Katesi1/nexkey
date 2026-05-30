@@ -14,7 +14,7 @@ public class WarehouseItemDto
     public string Unit { get; set; } = null!;
     public long CostPrice { get; set; }
     public long InventoryValue { get; set; }
-    public string Status { get; set; } = null!;
+    public WarehouseStatus Status { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
 

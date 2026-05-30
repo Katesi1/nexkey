@@ -8,7 +8,6 @@ using NexKey.Api.Interfaces;
 using NexKey.Api.Middleware;
 using NexKey.Api.Services;
 using System.Text;
-using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +15,6 @@ builder.Services.AddControllers()
     .AddJsonOptions(opt =>
     {
         opt.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-        opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
 // Database
@@ -100,11 +98,12 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "NexKey API", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header: Bearer {token}",
+        Description = "Nhập JWT token (không cần gõ 'Bearer')",
         Name = "Authorization",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
     });
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
@@ -122,6 +121,8 @@ var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "NexKey API v1"));
+
+app.MapGet("/", () => Results.Redirect("/swagger"));
 
 // Auto migrate and seed
 using (var scope = app.Services.CreateScope())

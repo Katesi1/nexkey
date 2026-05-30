@@ -131,11 +131,11 @@ public class ProductService : IProductService
             ws.Cell(row, 1).Value = p.Sku;
             ws.Cell(row, 2).Value = p.Name;
             ws.Cell(row, 3).Value = p.CategoryName;
-            ws.Cell(row, 4).Value = p.Type;
+            ws.Cell(row, 4).Value = p.Type.ToString();
             ws.Cell(row, 5).Value = p.Price;
             ws.Cell(row, 6).Value = p.Stock;
             ws.Cell(row, 7).Value = p.Sold;
-            ws.Cell(row, 8).Value = p.Status;
+            ws.Cell(row, 8).Value = p.Status.ToString();
         }
 
         using var ms = new MemoryStream();
@@ -168,8 +168,8 @@ public class ProductService : IProductService
     {
         Id = p.Id, Name = p.Name, Sku = p.Sku,
         CategoryId = p.CategoryId, CategoryName = p.CategoryName,
-        Type = p.Type.ToString(), Price = p.Price, ComparePrice = p.ComparePrice,
-        Stock = p.Stock, Sold = p.Sold, Status = p.Status.ToString(),
+        Type = p.Type, Price = p.Price, ComparePrice = p.ComparePrice,
+        Stock = p.Stock, Sold = p.Sold, Status = p.Status,
         Image = p.Image, Description = p.Description,
         CreatedAt = p.CreatedAt, UpdatedAt = p.UpdatedAt
     };

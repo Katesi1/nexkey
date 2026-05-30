@@ -1,11 +1,11 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Models.DTOs.Articles;
 using NexKey.Api.Interfaces;
 
 namespace NexKey.Api.Controllers;
 
-[Route("v1/articles")]
+[Route("api/articles")]
 public class ArticlesController : BaseController
 {
     private readonly IArticleService _service;
@@ -38,7 +38,7 @@ public class ArticlesController : BaseController
     public async Task<IActionResult> Delete(string id)
     {
         await _service.DeleteAsync(id);
-        return Ok(new { message = "Đã xóa bài viết" });
+        return Ok(new { message = "ÄÃ£ xÃ³a bÃ i viáº¿t" });
     }
 
     [HttpPost("{id}/publish")]

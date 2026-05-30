@@ -13,7 +13,7 @@ public class SupplierDto
     public string Phone { get; set; } = null!;
     public int SuppliedProducts { get; set; }
     public long Debt { get; set; }
-    public string Status { get; set; } = null!;
+    public SupplierStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

@@ -1,10 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Models.DTOs.Products;
 using NexKey.Api.Interfaces;
 
 namespace NexKey.Api.Controllers;
 
-[Route("v1/products")]
+[Route("api/products")]
 public class ProductsController : BaseController
 {
     private readonly IProductService _service;
@@ -40,7 +40,7 @@ public class ProductsController : BaseController
     public async Task<IActionResult> Delete(string id)
     {
         await _service.DeleteAsync(id);
-        return Ok(new { message = "Đã xóa sản phẩm" });
+        return Ok(new { message = "ÄÃ£ xÃ³a sáº£n pháº©m" });
     }
 
     [HttpPatch("{id}/stock")]

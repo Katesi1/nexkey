@@ -116,11 +116,11 @@ public class CustomerService : ICustomerService
             Id = customer.Id, FullName = customer.FullName, Email = customer.Email,
             Phone = customer.Phone, Avatar = customer.Avatar,
             TotalOrders = orders.Count, TotalSpending = totalSpending,
-            Status = customer.Status.ToString(), JoinedAt = customer.JoinedAt, UpdatedAt = customer.UpdatedAt,
+            Status = customer.Status, JoinedAt = customer.JoinedAt, UpdatedAt = customer.UpdatedAt,
             Orders = orders.Select(o => new CustomerOrderDto
             {
-                Id = o.Id, Total = o.Total, Status = o.Status.ToString(),
-                PaymentMethod = o.PaymentMethod.ToString(), CreatedAt = o.CreatedAt
+                Id = o.Id, Total = o.Total, Status = o.Status,
+                PaymentMethod = o.PaymentMethod, CreatedAt = o.CreatedAt
             }).ToList()
         };
 
@@ -209,7 +209,7 @@ public class CustomerService : ICustomerService
             ws.Cell(row, 3).Value = c.Phone;
             ws.Cell(row, 4).Value = c.TotalOrders;
             ws.Cell(row, 5).Value = c.TotalSpending;
-            ws.Cell(row, 6).Value = c.Status;
+            ws.Cell(row, 6).Value = c.Status.ToString();
             ws.Cell(row, 7).Value = c.JoinedAt.ToString("yyyy-MM-dd");
         }
 
@@ -221,6 +221,6 @@ public class CustomerService : ICustomerService
     private static CustomerDto MapToDto(Customer c) => new()
     {
         Id = c.Id, FullName = c.FullName, Email = c.Email, Phone = c.Phone, Avatar = c.Avatar,
-        Status = c.Status.ToString(), JoinedAt = c.JoinedAt, UpdatedAt = c.UpdatedAt
+        Status = c.Status, JoinedAt = c.JoinedAt, UpdatedAt = c.UpdatedAt
     };
 }

@@ -12,7 +12,7 @@ public class CustomerDto
     public string? Avatar { get; set; }
     public int TotalOrders { get; set; }
     public long TotalSpending { get; set; }
-    public string Status { get; set; } = null!;
+    public CustomerStatus Status { get; set; }
     public DateTime JoinedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -26,8 +26,8 @@ public class CustomerOrderDto
 {
     public string Id { get; set; } = null!;
     public long Total { get; set; }
-    public string Status { get; set; } = null!;
-    public string PaymentMethod { get; set; } = null!;
+    public OrderStatus Status { get; set; }
+    public PaymentMethod PaymentMethod { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 

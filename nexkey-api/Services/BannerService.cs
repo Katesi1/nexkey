@@ -118,7 +118,7 @@ public class BannerService : IBannerService
     private static BannerDto MapToDto(Banner b) => new()
     {
         Id = b.Id, Title = b.Title, Image = b.Image, Link = b.Link,
-        Position = b.Position.ToString(), SortOrder = b.SortOrder, Status = b.Status.ToString(),
+        Position = b.Position, SortOrder = b.SortOrder, Status = b.Status,
         CreatedAt = b.CreatedAt, UpdatedAt = b.UpdatedAt
     };
 }

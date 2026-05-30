@@ -10,7 +10,7 @@ public class PageDto
     public string Slug { get; set; } = null!;
     public string Description { get; set; } = null!;
     public string? Content { get; set; }
-    public string Status { get; set; } = null!;
+    public PageStatus Status { get; set; }
     public bool IsSystem { get; set; }
     public int WordCount { get; set; }
     public DateTime CreatedAt { get; set; }

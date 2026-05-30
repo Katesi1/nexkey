@@ -84,7 +84,7 @@ public class ActivityLogService : IActivityLogService
 
         return new ActivityLogDto
         {
-            Id = l.Id, Type = l.Type.ToString(), Title = l.Title, Description = l.Description,
+            Id = l.Id, Type = l.Type, Title = l.Title, Description = l.Description,
             AdminId = l.AdminId, AdminName = l.Admin?.Name, Meta = meta,
             IsRead = l.IsRead, CreatedAt = l.CreatedAt
         };

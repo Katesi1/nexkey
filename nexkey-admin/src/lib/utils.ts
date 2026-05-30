@@ -36,6 +36,23 @@ export function formatCompact(num: number): string {
   return num.toString();
 }
 
+// Format VND in compact Vietnamese units: 1.2 tỷ / 850 tr / 950k
+export function formatVNDCompact(amount: number): string {
+  if (amount >= 1_000_000_000) {
+    const v = amount / 1_000_000_000;
+    return (Number.isInteger(v) ? v.toString() : v.toFixed(1)) + " tỷ";
+  }
+  if (amount >= 1_000_000) {
+    const v = amount / 1_000_000;
+    return (Number.isInteger(v) ? v.toString() : v.toFixed(1)) + " tr";
+  }
+  if (amount >= 1_000) {
+    const v = amount / 1_000;
+    return (Number.isInteger(v) ? v.toString() : v.toFixed(1)) + "k";
+  }
+  return amount.toLocaleString("vi-VN");
+}
+
 // Format date to Vietnamese format
 export function formatDate(dateString: string): string {
   const date = new Date(dateString);

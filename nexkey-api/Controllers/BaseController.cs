@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Common;
 using System.Security.Claims;
@@ -7,7 +7,7 @@ namespace NexKey.Api.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("v1/[controller]")]
+[Route("api/[controller]")]
 public abstract class BaseController : ControllerBase
 {
     protected string CurrentAdminId =>

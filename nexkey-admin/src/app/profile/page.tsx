@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/Button";
 import {
@@ -9,12 +9,14 @@ import {
   Camera, Lock,
 } from "lucide-react";
 import { useAuth } from "@/store/AuthContext";
-import { auth, logsApi } from "@/lib/api";
+import { auth, logsApi, getToken } from "@/lib/api";
 import { formatDateTime } from "@/lib/utils";
 import type { Activity } from "@/lib/types";
 
 function Toast({ msg, ok, onClose }: { msg: string; ok: boolean; onClose: () => void }) {
-  useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
+  useEffect(() => { const t = setTimeout(() => onCloseRef.current(), 3000); return () => clearTimeout(t); }, []);
   return (
     <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 2000, display: "flex", alignItems: "center", gap: 10, padding: "12px 18px", borderRadius: 10, background: ok ? "#064e3b" : "#450a0a", border: `1px solid ${ok ? "#10b981" : "#ef4444"}`, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", fontSize: 13, color: "#e2e8f0", fontWeight: 500 }}>
       {ok ? <CheckCircle size={15} style={{ color: "#10b981" }} /> : <AlertCircle size={15} style={{ color: "#ef4444" }} />}
@@ -54,6 +56,7 @@ export default function ProfilePage() {
   const showToast = (msg: string, ok = true) => setToast({ msg, ok });
 
   useEffect(() => {
+    if (!getToken()) return;
     logsApi.list({ limit: 5 }).then(({ data }) => setActivities(data)).catch(() => {});
   }, []);
 

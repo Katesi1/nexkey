@@ -1,10 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Models.DTOs.Warehouse;
 using NexKey.Api.Interfaces;
 
 namespace NexKey.Api.Controllers;
 
-[Route("v1/warehouse")]
+[Route("api/warehouse")]
 public class WarehouseController : BaseController
 {
     private readonly IWarehouseService _service;

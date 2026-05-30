@@ -9,9 +9,9 @@ public class BannerDto
     public string Title { get; set; } = null!;
     public string Image { get; set; } = null!;
     public string? Link { get; set; }
-    public string Position { get; set; } = null!;
+    public BannerPosition Position { get; set; }
     public int SortOrder { get; set; }
-    public string Status { get; set; } = null!;
+    public BannerStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

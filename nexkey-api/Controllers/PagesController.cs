@@ -1,11 +1,11 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Models.DTOs.Pages;
 using NexKey.Api.Interfaces;
 
 namespace NexKey.Api.Controllers;
 
-[Route("v1/pages")]
+[Route("api/pages")]
 public class PagesController : BaseController
 {
     private readonly IPageService _service;
@@ -34,6 +34,6 @@ public class PagesController : BaseController
     public async Task<IActionResult> Delete(string id)
     {
         await _service.DeleteAsync(id);
-        return Ok(new { message = "Đã xóa trang" });
+        return Ok(new { message = "ÄÃ£ xÃ³a trang" });
     }
 }

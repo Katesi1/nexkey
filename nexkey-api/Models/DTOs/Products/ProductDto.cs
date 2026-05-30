@@ -10,12 +10,12 @@ public class ProductDto
     public string Sku { get; set; } = null!;
     public string CategoryId { get; set; } = null!;
     public string CategoryName { get; set; } = null!;
-    public string Type { get; set; } = null!;
+    public ProductType Type { get; set; }
     public long Price { get; set; }
     public long? ComparePrice { get; set; }
     public int Stock { get; set; }
     public int Sold { get; set; }
-    public string Status { get; set; } = null!;
+    public ProductStatus Status { get; set; }
     public string? Image { get; set; }
     public string? Description { get; set; }
     public DateTime CreatedAt { get; set; }

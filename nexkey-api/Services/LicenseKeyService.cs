@@ -178,6 +178,6 @@ public class LicenseKeyService : ILicenseKeyService
         Id = k.Id, Key = k.Key, ProductId = k.ProductId, ProductName = k.ProductName,
         CustomerId = k.CustomerId, CustomerName = k.CustomerName, OrderId = k.OrderId,
         ActivatedAt = k.ActivatedAt, ExpiresAt = k.ExpiresAt,
-        Status = k.Status.ToString(), CreatedAt = k.CreatedAt
+        Status = k.Status, CreatedAt = k.CreatedAt
     };
 }

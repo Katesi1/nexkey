@@ -3,7 +3,7 @@ import {
   Users, Package, KeyRound, Warehouse, Building2,
   Activity, Star, AlertTriangle,
 } from "lucide-react";
-import { formatVND, formatCompact } from "@/lib/utils";
+import { formatVNDCompact, formatCompact } from "@/lib/utils";
 
 type StatColor = "blue" | "green" | "purple" | "amber" | "cyan" | "rose";
 
@@ -56,7 +56,7 @@ export function StatCard({
   const isPositive = change !== undefined && change >= 0;
 
   const displayValue = isCurrency
-    ? formatVND(Number(value))
+    ? formatVNDCompact(Number(value))
     : typeof value === "number"
     ? formatCompact(value)
     : value;

@@ -1,10 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Models.DTOs.Suppliers;
 using NexKey.Api.Interfaces;
 
 namespace NexKey.Api.Controllers;
 
-[Route("v1/suppliers")]
+[Route("api/suppliers")]
 public class SuppliersController : BaseController
 {
     private readonly ISupplierService _service;
@@ -30,7 +30,7 @@ public class SuppliersController : BaseController
     public async Task<IActionResult> Delete(string id)
     {
         await _service.DeleteAsync(id);
-        return Ok(new { message = "Đã xóa nhà cung cấp" });
+        return Ok(new { message = "ÄÃ£ xÃ³a nhÃ  cung cáº¥p" });
     }
 
     [HttpPatch("{id}/debt")]

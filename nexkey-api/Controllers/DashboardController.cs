@@ -1,11 +1,11 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NexKey.Api.Data;
 using NexKey.Api.Interfaces;
 
 namespace NexKey.Api.Controllers;
 
-[Route("v1/dashboard")]
+[Route("api/dashboard")]
 public class DashboardController : BaseController
 {
     private readonly IOrderService _orderService;
@@ -18,15 +18,14 @@ public class DashboardController : BaseController
     }
 
     /// <summary>
-    /// Trả về tất cả số liệu dashboard trong 1 request.
+    /// Tráº£ vá» táº¥t cáº£ sá»‘ liá»‡u dashboard trong 1 request.
     /// </summary>
     [HttpGet("stats")]
     public async Task<IActionResult> GetStats()
     {
-        var orderStatsTask    = _orderService.GetStatsAsync();
-        var totalCustomers    = await _db.Customers.CountAsync();
-        var totalProducts     = await _db.Products.CountAsync();
-        var orderStats        = await orderStatsTask;
+        var orderStats     = await _orderService.GetStatsAsync();
+        var totalCustomers = await _db.Customers.CountAsync();
+        var totalProducts  = await _db.Products.CountAsync();
 
         return Ok(new
         {

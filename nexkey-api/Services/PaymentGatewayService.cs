@@ -72,7 +72,7 @@ public class PaymentGatewayService : IPaymentGatewayService
         var byMethod = orders.GroupBy(o => o.PaymentMethod)
             .Select(g => new PaymentMethodStatDto
             {
-                Method = g.Key.ToString(),
+                Method = g.Key,
                 Count = g.Count(),
                 Revenue = g.Sum(o => o.Total)
             }).ToList();

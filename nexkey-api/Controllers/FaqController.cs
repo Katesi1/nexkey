@@ -1,10 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Models.DTOs.Faqs;
 using NexKey.Api.Interfaces;
 
 namespace NexKey.Api.Controllers;
 
-[Route("v1/faq")]
+[Route("api/faq")]
 public class FaqController : BaseController
 {
     private readonly IFaqService _service;
@@ -33,7 +33,7 @@ public class FaqController : BaseController
     public async Task<IActionResult> Delete(string id)
     {
         await _service.DeleteAsync(id);
-        return Ok(new { message = "Đã xóa FAQ" });
+        return Ok(new { message = "ÄÃ£ xÃ³a FAQ" });
     }
 
     [HttpPatch("{id}/toggle")]
@@ -43,6 +43,6 @@ public class FaqController : BaseController
     public async Task<IActionResult> Reorder([FromBody] List<ReorderFaqRequest> items)
     {
         await _service.ReorderAsync(items);
-        return Ok(new { message = "Đã cập nhật thứ tự" });
+        return Ok(new { message = "ÄÃ£ cáº­p nháº­t thá»© tá»±" });
     }
 }

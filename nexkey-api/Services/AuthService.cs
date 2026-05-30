@@ -42,11 +42,7 @@ public class AuthService : IAuthService
         await _db.SaveChangesAsync();
 
         var token = GenerateToken(admin);
-        return new LoginResponse
-        {
-            Token = token,
-            Admin = MapAdminInfo(admin)
-        };
+        return new LoginResponse { Token = token };
     }
 
     public Task LogoutAsync(string adminId, string token) => Task.CompletedTask;
@@ -238,7 +234,7 @@ public class AuthService : IAuthService
 
         return new AdminInfo
         {
-            Id = a.Id, Name = a.Name, Email = a.Email, Status = a.Status.ToString(),
+            Id = a.Id, Name = a.Name, Email = a.Email, Status = a.Status,
             Role = new RoleInfo { Id = a.Role.Id, Name = a.Role.Name, Color = a.Role.Color, Permissions = permissions }
         };
     }
@@ -259,7 +255,7 @@ public class AuthService : IAuthService
     private static AdminDto MapAdminDto(Admin a) => new()
     {
         Id = a.Id, Name = a.Name, Email = a.Email, RoleId = a.RoleId,
-        RoleName = a.Role?.Name ?? "", Status = a.Status.ToString(),
+        RoleName = a.Role?.Name ?? "", Status = a.Status,
         LastLogin = a.LastLogin, CreatedAt = a.CreatedAt
     };
 }

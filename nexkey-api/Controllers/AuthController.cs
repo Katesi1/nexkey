@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Common;
 using NexKey.Api.Models.DTOs.Auth;
@@ -6,7 +6,7 @@ using NexKey.Api.Interfaces;
 
 namespace NexKey.Api.Controllers;
 
-[Route("v1/auth")]
+[Route("api/auth")]
 public class AuthController : BaseController
 {
     private readonly IAuthService _auth;
@@ -25,14 +25,14 @@ public class AuthController : BaseController
     public async Task<IActionResult> Logout()
     {
         await _auth.LogoutAsync(CurrentAdminId, "");
-        return Ok(new { message = "Đăng xuất thành công" });
+        return Ok(new { message = "ÄÄƒng xuáº¥t thÃ nh cÃ´ng" });
     }
 
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
     {
         await _auth.ChangePasswordAsync(CurrentAdminId, request);
-        return Ok(new { message = "Đổi mật khẩu thành công" });
+        return Ok(new { message = "Äá»•i máº­t kháº©u thÃ nh cÃ´ng" });
     }
 
     [HttpGet("me")]
@@ -43,7 +43,7 @@ public class AuthController : BaseController
     }
 }
 
-[Route("v1/roles")]
+[Route("api/roles")]
 public class RolesController : BaseController
 {
     private readonly IAuthService _auth;
@@ -65,11 +65,11 @@ public class RolesController : BaseController
     public async Task<IActionResult> Delete(string id)
     {
         await _auth.DeleteRoleAsync(id);
-        return Ok(new { message = "Đã xóa vai trò" });
+        return Ok(new { message = "ÄÃ£ xÃ³a vai trÃ²" });
     }
 }
 
-[Route("v1/admins")]
+[Route("api/admins")]
 public class AdminsController : BaseController
 {
     private readonly IAuthService _auth;
@@ -95,6 +95,6 @@ public class AdminsController : BaseController
     public async Task<IActionResult> Delete(string id)
     {
         await _auth.DeleteAdminAsync(id);
-        return Ok(new { message = "Đã xóa admin" });
+        return Ok(new { message = "ÄÃ£ xÃ³a admin" });
     }
 }

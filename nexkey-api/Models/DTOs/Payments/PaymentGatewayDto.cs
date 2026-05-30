@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using NexKey.Api.Models.Enums;
 
 namespace NexKey.Api.Models.DTOs.Payments;
 
@@ -31,7 +32,7 @@ public class PaymentStatsDto
 
 public class PaymentMethodStatDto
 {
-    public string Method { get; set; } = null!;
+    public PaymentMethod Method { get; set; }
     public int Count { get; set; }
     public long Revenue { get; set; }
 }

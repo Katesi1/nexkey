@@ -135,7 +135,7 @@ public class ArticleService : IArticleService
         return new ArticleDto
         {
             Id = a.Id, Title = a.Title, Slug = a.Slug, Excerpt = a.Excerpt,
-            Content = a.Content, Category = a.Category, Status = a.Status.ToString(),
+            Content = a.Content, Category = a.Category, Status = a.Status,
             Author = a.Author, Thumbnail = a.Thumbnail, Tags = tags,
             Views = a.Views, PublishedAt = a.PublishedAt, ScheduledAt = a.ScheduledAt,
             CreatedAt = a.CreatedAt, UpdatedAt = a.UpdatedAt

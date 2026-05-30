@@ -9,7 +9,7 @@ public class FaqDto
     public string Question { get; set; } = null!;
     public string Answer { get; set; } = null!;
     public string Category { get; set; } = null!;
-    public string Status { get; set; } = null!;
+    public FaqStatus Status { get; set; }
     public int SortOrder { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

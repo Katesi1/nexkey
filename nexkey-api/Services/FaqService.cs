@@ -106,7 +106,7 @@ public class FaqService : IFaqService
     private static FaqDto MapToDto(Faq f) => new()
     {
         Id = f.Id, Question = f.Question, Answer = f.Answer, Category = f.Category,
-        Status = f.Status.ToString(), SortOrder = f.SortOrder,
+        Status = f.Status, SortOrder = f.SortOrder,
         CreatedAt = f.CreatedAt, UpdatedAt = f.UpdatedAt
     };
 }

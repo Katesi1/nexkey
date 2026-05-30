@@ -156,8 +156,8 @@ public class OrderService : IOrderService
             ws.Cell(row, 2).Value = o.CustomerName;
             ws.Cell(row, 3).Value = o.CustomerEmail;
             ws.Cell(row, 4).Value = o.Total;
-            ws.Cell(row, 5).Value = o.PaymentMethod;
-            ws.Cell(row, 6).Value = o.Status;
+            ws.Cell(row, 5).Value = o.PaymentMethod.ToString();
+            ws.Cell(row, 6).Value = o.Status.ToString();
             ws.Cell(row, 7).Value = o.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss");
         }
 
@@ -306,8 +306,8 @@ public class OrderService : IOrderService
         CustomerPhone = o.CustomerPhone,
         Total = o.Total,
         Discount = o.Discount,
-        PaymentMethod = o.PaymentMethod.ToString(),
-        Status = o.Status.ToString(),
+        PaymentMethod = o.PaymentMethod,
+        Status = o.Status,
         Note = o.Note,
         CreatedAt = o.CreatedAt,
         UpdatedAt = o.UpdatedAt,

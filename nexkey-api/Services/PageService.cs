@@ -88,7 +88,7 @@ public class PageService : IPageService
     private static PageDto MapToDto(StaticPage p) => new()
     {
         Id = p.Id, Title = p.Title, Slug = p.Slug, Description = p.Description,
-        Content = p.Content, Status = p.Status.ToString(), IsSystem = p.IsSystem,
+        Content = p.Content, Status = p.Status, IsSystem = p.IsSystem,
         WordCount = p.WordCount, CreatedAt = p.CreatedAt, UpdatedAt = p.UpdatedAt
     };
 }

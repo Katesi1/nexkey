@@ -5,7 +5,7 @@ namespace NexKey.Api.Models.DTOs.Logs;
 public class ActivityLogDto
 {
     public string Id { get; set; } = null!;
-    public string Type { get; set; } = null!;
+    public ActivityLogType Type { get; set; }
     public string Title { get; set; } = null!;
     public string Description { get; set; } = null!;
     public string? AdminId { get; set; }

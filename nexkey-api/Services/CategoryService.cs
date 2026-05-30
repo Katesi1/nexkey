@@ -114,7 +114,7 @@ public class CategoryService : ICategoryService
     private static CategoryDto MapToDto(Category c, int productCount) => new()
     {
         Id = c.Id, Name = c.Name, Slug = c.Slug, Icon = c.Icon, Color = c.Color,
-        ProductCount = productCount, Status = c.Status.ToString(),
+        ProductCount = productCount, Status = c.Status,
         CreatedAt = c.CreatedAt, UpdatedAt = c.UpdatedAt
     };
 }

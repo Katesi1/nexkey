@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { StatCard, StatsGrid } from "@/components/ui/StatCard";
 import { Button } from "@/components/ui/Button";
@@ -60,7 +60,9 @@ const COLOR_PRESETS = ["#f59e0b", "#3b82f6", "#10b981", "#8b5cf6", "#ef4444", "#
 
 /* ─── Toast ──────────────────────────────────────────────────── */
 function Toast({ msg, ok, onClose }: { msg: string; ok: boolean; onClose: () => void }) {
-  useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
+  useEffect(() => { const t = setTimeout(() => onCloseRef.current(), 3000); return () => clearTimeout(t); }, []);
   return (
     <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 2000, display: "flex", alignItems: "center", gap: 10, padding: "12px 18px", borderRadius: 10, background: ok ? "#064e3b" : "#450a0a", border: `1px solid ${ok ? "#10b981" : "#ef4444"}`, boxShadow: "0 8px 32px rgba(0,0,0,0.5)", fontSize: 13, color: "#e2e8f0", fontWeight: 500, maxWidth: 360 }}>
       {ok ? <CheckCircle size={15} style={{ color: "#10b981" }} /> : <AlertCircle size={15} style={{ color: "#ef4444" }} />}
@@ -72,11 +74,13 @@ function Toast({ msg, ok, onClose }: { msg: string; ok: boolean; onClose: () => 
 
 /* ─── Modal wrapper ──────────────────────────────────────────── */
 function Modal({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; });
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onCloseRef.current(); };
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
-  }, [onClose]);
+  }, []);
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()}>{children}</div>

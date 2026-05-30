@@ -1,10 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Models.DTOs.Customers;
 using NexKey.Api.Interfaces;
 
 namespace NexKey.Api.Controllers;
 
-[Route("v1/customers")]
+[Route("api/customers")]
 public class CustomersController : BaseController
 {
     private readonly ICustomerService _service;
@@ -40,7 +40,7 @@ public class CustomersController : BaseController
     public async Task<IActionResult> Delete(string id)
     {
         await _service.DeleteAsync(id);
-        return Ok(new { message = "Đã xóa khách hàng" });
+        return Ok(new { message = "ÄÃ£ xÃ³a khÃ¡ch hÃ ng" });
     }
 
     [HttpPatch("{id}/lock")]

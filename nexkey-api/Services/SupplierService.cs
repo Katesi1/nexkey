@@ -117,6 +117,6 @@ public class SupplierService : ISupplierService
         Id = s.Id, CompanyName = s.CompanyName, TaxCode = s.TaxCode,
         ContactPerson = s.ContactPerson, Email = s.Email, Phone = s.Phone,
         SuppliedProducts = suppliedProducts, Debt = s.Debt,
-        Status = s.Status.ToString(), CreatedAt = s.CreatedAt, UpdatedAt = s.UpdatedAt
+        Status = s.Status, CreatedAt = s.CreatedAt, UpdatedAt = s.UpdatedAt
     };
 }

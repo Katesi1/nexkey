@@ -1,8 +1,235 @@
-// - Order Types -
+// ── Enum const objects — khớp số nguyên với API C# ───────────────────────
+// Dùng: OrderStatus.HoanThanh === 2, hoặc kiểm tra status === 2
 
-export type OrderStatus = "Hoàn thành" | "Đang xử lý" | "Đã hủy" | "Hoàn tiền" | "Chờ thanh toán";
+export const OrderStatus = {
+  DangXuLy:     1,
+  HoanThanh:    2,
+  DaHuy:        3,
+  HoanTien:     4,
+  ChoThanhToan: 5,
+} as const;
+export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
 
-export type PaymentMethod = "VNPay" | "MoMo" | "Banking" | "Card" | "Tiền mặt";
+export const PaymentMethod = {
+  VNPay:   1,
+  MoMo:    2,
+  Banking: 3,
+  Card:    4,
+  TienMat: 5,
+} as const;
+export type PaymentMethod = typeof PaymentMethod[keyof typeof PaymentMethod];
+
+export const ProductType = {
+  WindowsKey:   1,
+  OfficeKey:    2,
+  Subscription: 3,
+  Account:      4,
+  Antivirus:    5,
+} as const;
+export type ProductType = typeof ProductType[keyof typeof ProductType];
+
+export const ProductStatus = {
+  DangBan:  1,
+  HetHang:  2,
+  TamNgung: 3,
+  Nhap:     4,
+} as const;
+export type ProductStatus = typeof ProductStatus[keyof typeof ProductStatus];
+
+export const CategoryStatus = {
+  HienThi: 1,
+  An:      2,
+} as const;
+export type CategoryStatus = typeof CategoryStatus[keyof typeof CategoryStatus];
+
+export const CustomerStatus = {
+  HoatDong: 1,
+  VIP:      2,
+  BiKhoa:   3,
+} as const;
+export type CustomerStatus = typeof CustomerStatus[keyof typeof CustomerStatus];
+
+export const SupplierStatus = {
+  DangHopTac: 1,
+  ChoDuyet:   2,
+  TamNgung:   3,
+} as const;
+export type SupplierStatus = typeof SupplierStatus[keyof typeof SupplierStatus];
+
+export const WarehouseStatus = {
+  ConHang:  1,
+  SapHet:   2,
+  HetHang:  3,
+  DangNhap: 4,
+} as const;
+export type WarehouseStatus = typeof WarehouseStatus[keyof typeof WarehouseStatus];
+
+export const LicenseKeyStatus = {
+  HoatDong:      1,
+  SapHetHan:     2,
+  DaHetHan:      3,
+  BiKhoa:        4,
+  ChuaKichHoat:  5,
+} as const;
+export type LicenseKeyStatus = typeof LicenseKeyStatus[keyof typeof LicenseKeyStatus];
+
+export const BannerPosition = {
+  TrangChuHero:   1,
+  TrangChuBanner: 2,
+  TrangSanPham:   3,
+  ThanhToan:      4,
+} as const;
+export type BannerPosition = typeof BannerPosition[keyof typeof BannerPosition];
+
+export const BannerStatus = {
+  HienThi: 1,
+  An:      2,
+} as const;
+export type BannerStatus = typeof BannerStatus[keyof typeof BannerStatus];
+
+export const ArticleStatus = {
+  DaXuatBan: 1,
+  Nhap:      2,
+  DaLenLich: 3,
+} as const;
+export type ArticleStatus = typeof ArticleStatus[keyof typeof ArticleStatus];
+
+export const PageStatus = {
+  HienThi: 1,
+  An:      2,
+} as const;
+export type PageStatus = typeof PageStatus[keyof typeof PageStatus];
+
+export const FaqStatus = {
+  HienThi: 1,
+  An:      2,
+} as const;
+export type FaqStatus = typeof FaqStatus[keyof typeof FaqStatus];
+
+export const ActivityLogType = {
+  Order:    1,
+  Customer: 2,
+  Product:  3,
+  Key:      4,
+  Payment:  5,
+  Admin:    6,
+} as const;
+export type ActivityLogType = typeof ActivityLogType[keyof typeof ActivityLogType];
+
+export const AdminStatus = {
+  HoatDong: 1,
+  BiKhoa:   2,
+} as const;
+export type AdminStatus = typeof AdminStatus[keyof typeof AdminStatus];
+
+// ── Display labels — dùng trong UI ────────────────────────────────────────
+
+export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  1: "Đang xử lý",
+  2: "Hoàn thành",
+  3: "Đã hủy",
+  4: "Hoàn tiền",
+  5: "Chờ thanh toán",
+};
+
+export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
+  1: "VNPay",
+  2: "MoMo",
+  3: "Banking",
+  4: "Card",
+  5: "Tiền mặt",
+};
+
+export const PRODUCT_TYPE_LABEL: Record<ProductType, string> = {
+  1: "Windows Key",
+  2: "Office Key",
+  3: "Subscription",
+  4: "Account",
+  5: "Antivirus",
+};
+
+export const PRODUCT_STATUS_LABEL: Record<ProductStatus, string> = {
+  1: "Đang bán",
+  2: "Hết hàng",
+  3: "Tạm ngưng",
+  4: "Nháp",
+};
+
+export const CATEGORY_STATUS_LABEL: Record<CategoryStatus, string> = {
+  1: "Hiển thị",
+  2: "Ẩn",
+};
+
+export const CUSTOMER_STATUS_LABEL: Record<CustomerStatus, string> = {
+  1: "Hoạt động",
+  2: "VIP",
+  3: "Bị khóa",
+};
+
+export const SUPPLIER_STATUS_LABEL: Record<SupplierStatus, string> = {
+  1: "Đang hợp tác",
+  2: "Chờ duyệt",
+  3: "Tạm ngưng",
+};
+
+export const WAREHOUSE_STATUS_LABEL: Record<WarehouseStatus, string> = {
+  1: "Còn hàng",
+  2: "Sắp hết",
+  3: "Hết hàng",
+  4: "Đang nhập",
+};
+
+export const LICENSE_KEY_STATUS_LABEL: Record<LicenseKeyStatus, string> = {
+  1: "Hoạt động",
+  2: "Sắp hết hạn",
+  3: "Đã hết hạn",
+  4: "Bị khóa",
+  5: "Chưa kích hoạt",
+};
+
+export const BANNER_POSITION_LABEL: Record<BannerPosition, string> = {
+  1: "Trang chủ - Hero",
+  2: "Trang chủ - Banner",
+  3: "Trang sản phẩm",
+  4: "Thanh toán",
+};
+
+export const BANNER_STATUS_LABEL: Record<BannerStatus, string> = {
+  1: "Hiển thị",
+  2: "Ẩn",
+};
+
+export const ARTICLE_STATUS_LABEL: Record<ArticleStatus, string> = {
+  1: "Đã xuất bản",
+  2: "Nháp",
+  3: "Đã lên lịch",
+};
+
+export const PAGE_STATUS_LABEL: Record<PageStatus, string> = {
+  1: "Hiển thị",
+  2: "Ẩn",
+};
+
+export const FAQ_STATUS_LABEL: Record<FaqStatus, string> = {
+  1: "Hiển thị",
+  2: "Ẩn",
+};
+
+export const ACTIVITY_LOG_TYPE_LABEL: Record<ActivityLogType, string> = {
+  1: "Đơn hàng",
+  2: "Khách hàng",
+  3: "Sản phẩm",
+  4: "License Key",
+  5: "Thanh toán",
+  6: "Quản trị",
+};
+
+export const ADMIN_STATUS_LABEL: Record<AdminStatus, string> = {
+  1: "Hoạt động",
+  2: "Bị khóa",
+};
+
+// ── Order Types ────────────────────────────────────────────────────────────
 
 export type OrderItem = {
   productId: string;
@@ -27,11 +254,7 @@ export type Order = {
   note?: string;
 };
 
-// - Product Types -
-
-export type ProductType = "Windows Key" | "Office Key" | "Subscription" | "Account" | "Antivirus";
-
-export type ProductStatus = "Đang bán" | "Hết hàng" | "Tạm ngưng" | "Nháp";
+// ── Product Types ──────────────────────────────────────────────────────────
 
 export type Product = {
   id: string;
@@ -50,9 +273,7 @@ export type Product = {
   createdAt: string;
 };
 
-// - Category Types -
-
-export type CategoryStatus = "Hiển thị" | "Ẩn";
+// ── Category Types ─────────────────────────────────────────────────────────
 
 export type Category = {
   id: string;
@@ -65,9 +286,7 @@ export type Category = {
   createdAt: string;
 };
 
-// - Customer Types -
-
-export type CustomerStatus = "Hoạt động" | "VIP" | "Bị khóa";
+// ── Customer Types ─────────────────────────────────────────────────────────
 
 export type Customer = {
   id: string;
@@ -81,9 +300,7 @@ export type Customer = {
   joinedAt: string;
 };
 
-// - Supplier Types -
-
-export type SupplierStatus = "Đang hợp tác" | "Chờ duyệt" | "Tạm ngưng";
+// ── Supplier Types ─────────────────────────────────────────────────────────
 
 export type Supplier = {
   id: string;
@@ -98,9 +315,7 @@ export type Supplier = {
   createdAt: string;
 };
 
-// - Warehouse Types -
-
-export type StockStatus = "Còn hàng" | "Sắp hết" | "Hết hàng" | "Đang nhập";
+// ── Warehouse Types ────────────────────────────────────────────────────────
 
 export type WarehouseItem = {
   id: string;
@@ -112,13 +327,11 @@ export type WarehouseItem = {
   unit: string;
   costPrice: number;
   inventoryValue: number;
-  status: StockStatus;
+  status: WarehouseStatus;
   updatedAt: string;
 };
 
-// - Key/License Types -
-
-export type KeyStatus = "Hoạt động" | "Sắp hết hạn" | "Đã hết hạn" | "Bị khóa" | "Chưa kích hoạt";
+// ── License Key Types ──────────────────────────────────────────────────────
 
 export type LicenseKey = {
   id: string;
@@ -130,15 +343,11 @@ export type LicenseKey = {
   orderId?: string;
   activatedAt?: string;
   expiresAt?: string;
-  status: KeyStatus;
+  status: LicenseKeyStatus;
   createdAt: string;
 };
 
-// - Banner Types -
-
-export type BannerPosition = "Trang chủ - Hero" | "Trang chủ - Banner" | "Trang sản phẩm" | "Thanh toán";
-
-export type BannerStatus = "Hiển thị" | "Ẩn";
+// ── Banner Types ───────────────────────────────────────────────────────────
 
 export type Banner = {
   id: string;
@@ -151,13 +360,11 @@ export type Banner = {
   createdAt: string;
 };
 
-// - Activity Types -
-
-export type ActivityType = "order" | "customer" | "product" | "key" | "payment" | "admin";
+// ── Activity Log Types ─────────────────────────────────────────────────────
 
 export type Activity = {
   id: string;
-  type: ActivityType;
+  type: ActivityLogType;
   title: string;
   description: string;
   createdAt: string;
@@ -166,9 +373,8 @@ export type Activity = {
   adminName?: string;
 };
 
-// - Article Types -
+// ── Article Types ──────────────────────────────────────────────────────────
 
-export type ArticleStatus = "DaXuatBan" | "Nhap" | "DaLenLich";
 export type ArticleCategory = "Hướng dẫn" | "Tin tức" | "Khuyến mãi" | "Cập nhật" | "Bảo mật";
 
 export type Article = {
@@ -189,9 +395,7 @@ export type Article = {
   updatedAt: string;
 };
 
-// - Static Page Types -
-
-export type PageStatus = "HienThi" | "An";
+// ── Static Page Types ──────────────────────────────────────────────────────
 
 export type StaticPage = {
   id: string;
@@ -206,9 +410,8 @@ export type StaticPage = {
   updatedAt: string;
 };
 
-// - FAQ Types -
+// ── FAQ Types ──────────────────────────────────────────────────────────────
 
-export type FaqStatus = "HienThi" | "An";
 export type FaqCategory = "Sản phẩm" | "Thanh toán" | "Key & Kích hoạt" | "Bảo hành" | "Khác";
 
 export type FaqItem = {
@@ -222,9 +425,7 @@ export type FaqItem = {
   updatedAt: string;
 };
 
-// - Admin & Role Types -
-
-export type AdminStatus = "HoatDong" | "BiKhoa";
+// ── Admin & Role Types ─────────────────────────────────────────────────────
 
 export type Admin = {
   id: string;
@@ -261,7 +462,7 @@ export type AdminInfo = {
   };
 };
 
-// - Payment Gateway Types -
+// ── Payment Gateway Types ──────────────────────────────────────────────────
 
 export type PaymentGateway = {
   id: string;
@@ -273,7 +474,7 @@ export type PaymentGateway = {
   updatedAt: string;
 };
 
-// - Dashboard Types -
+// ── Dashboard Types ────────────────────────────────────────────────────────
 
 export type StatCardData = {
   label: string;

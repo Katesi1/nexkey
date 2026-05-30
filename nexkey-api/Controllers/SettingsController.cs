@@ -1,10 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Models.DTOs.Settings;
 using NexKey.Api.Interfaces;
 
 namespace NexKey.Api.Controllers;
 
-[Route("v1/settings")]
+[Route("api/settings")]
 public class SettingsController : BaseController
 {
     private readonly ISettingService _service;
@@ -21,13 +21,13 @@ public class SettingsController : BaseController
     public async Task<IActionResult> Update([FromBody] Dictionary<string, string> settings)
     {
         await _service.UpdateAsync(settings);
-        return Ok(new { message = "Đã cập nhật cài đặt" });
+        return Ok(new { message = "ÄÃ£ cáº­p nháº­t cÃ i Ä‘áº·t" });
     }
 
     [HttpPost("email/test")]
     public async Task<IActionResult> TestEmail([FromBody] SendTestEmailRequest request)
     {
         await _service.SendTestEmailAsync(request.To);
-        return Ok(new { message = "Đã gửi email test thành công" });
+        return Ok(new { message = "ÄÃ£ gá»­i email test thÃ nh cÃ´ng" });
     }
 }

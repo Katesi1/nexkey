@@ -44,19 +44,7 @@ Token hết hạn sau **24 giờ**. Cần login lại để lấy token mới.
 {
   "success": true,
   "data": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "admin": {
-      "id": "uuid",
-      "name": "Super Admin",
-      "email": "admin@nexkey.vn",
-      "status": "HoatDong",
-      "role": {
-        "id": "uuid",
-        "name": "Super Admin",
-        "color": "#dc2626",
-        "permissions": ["*"]
-      }
-    }
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   }
 }
 ```
@@ -105,7 +93,7 @@ Lấy thông tin admin đang đăng nhập.
     "id": "uuid",
     "name": "Super Admin",
     "email": "admin@nexkey.vn",
-    "status": "HoatDong",
+    "status": 1,
     "role": {
       "id": "uuid",
       "name": "Super Admin",
@@ -165,24 +153,28 @@ Tất cả response đều có cấu trúc thống nhất:
 
 ## Enums
 
-Các giá trị enum trả về dạng **string** trong response.
+Các giá trị enum trả về dạng **số nguyên** trong response.
 
 | Enum | Giá trị |
 |------|---------|
-| `OrderStatus` | `DangXuLy` · `HoanThanh` · `DaHuy` · `HoanTien` · `ChoThanhToan` |
-| `PaymentMethod` | `VNPay` · `MoMo` · `Banking` · `Card` · `TienMat` |
-| `ProductType` | `WindowsKey` · `OfficeKey` · `Subscription` · `Account` · `Antivirus` |
-| `ProductStatus` | `DangBan` · `HetHang` · `TamNgung` · `Nhap` |
-| `CategoryStatus` | `HienThi` · `An` |
-| `CustomerStatus` | `HoatDong` · `VIP` · `BiKhoa` |
-| `SupplierStatus` | `DangHopTac` · `ChoDuyet` · `TamNgung` |
-| `WarehouseStatus` | `ConHang` · `SapHet` · `HetHang` · `DangNhap` |
-| `LicenseKeyStatus` | `HoatDong` · `SapHetHan` · `DaHetHan` · `BiKhoa` · `ChuaKichHoat` |
-| `BannerPosition` | `TrangChuHero` · `TrangChuBanner` · `TrangSanPham` · `ThanhToan` |
-| `BannerStatus` | `HienThi` · `An` |
-| `ArticleStatus` | `DaXuatBan` · `Nhap` · `DaLenLich` |
-| `ActivityLogType` | `Order` · `Customer` · `Product` · `Key` · `Payment` · `Admin` |
-| `AdminStatus` | `HoatDong` · `BiKhoa` |
+| `OrderStatus` | `DangXuLy=1` · `HoanThanh=2` · `DaHuy=3` · `HoanTien=4` · `ChoThanhToan=5` |
+| `PaymentMethod` | `VNPay=1` · `MoMo=2` · `Banking=3` · `Card=4` · `TienMat=5` |
+| `ProductType` | `WindowsKey=1` · `OfficeKey=2` · `Subscription=3` · `Account=4` · `Antivirus=5` |
+| `ProductStatus` | `DangBan=1` · `HetHang=2` · `TamNgung=3` · `Nhap=4` |
+| `CategoryStatus` | `HienThi=1` · `An=2` |
+| `CustomerStatus` | `HoatDong=1` · `VIP=2` · `BiKhoa=3` |
+| `SupplierStatus` | `DangHopTac=1` · `ChoDuyet=2` · `TamNgung=3` |
+| `WarehouseStatus` | `ConHang=1` · `SapHet=2` · `HetHang=3` · `DangNhap=4` |
+| `LicenseKeyStatus` | `HoatDong=1` · `SapHetHan=2` · `DaHetHan=3` · `BiKhoa=4` · `ChuaKichHoat=5` |
+| `BannerPosition` | `TrangChuHero=1` · `TrangChuBanner=2` · `TrangSanPham=3` · `ThanhToan=4` |
+| `BannerStatus` | `HienThi=1` · `An=2` |
+| `ArticleStatus` | `DaXuatBan=1` · `Nhap=2` · `DaLenLich=3` |
+| `PageStatus` | `HienThi=1` · `An=2` |
+| `FaqStatus` | `HienThi=1` · `An=2` |
+| `ActivityLogType` | `Order=1` · `Customer=2` · `Product=3` · `Key=4` · `Payment=5` · `Admin=6` |
+| `AdminStatus` | `HoatDong=1` · `BiKhoa=2` |
+
+> **Tip:** Dùng tên enum để đọc code dễ hơn: `OrderStatus.HoanThanh === 2`
 
 ---
 
@@ -217,8 +209,8 @@ Danh sách đơn hàng.
       "customerPhone": "0901234567",
       "total": 500000,
       "discount": 0,
-      "paymentMethod": "VNPay",
-      "status": "HoanThanh",
+      "paymentMethod": 1,
+      "status": 2,
       "note": null,
       "createdAt": "2024-05-27T10:32:00Z",
       "updatedAt": "2024-05-27T10:35:00Z",
@@ -285,7 +277,7 @@ Tạo đơn hàng mới.
 ```json
 {
   "customerId": "uuid",
-  "paymentMethod": "VNPay",
+  "paymentMethod": 1,
   "note": "Giao hàng buổi sáng",
   "discount": 50000,
   "items": [
@@ -304,7 +296,7 @@ Cập nhật trạng thái hoặc ghi chú.
 **Request**
 ```json
 {
-  "status": "HoanThanh",
+  "status": 2,
   "note": "Đã giao thành công"
 }
 ```
@@ -319,7 +311,7 @@ Xóa đơn hàng.
 
 ### POST /orders/:id/refund
 
-Hoàn tiền đơn hàng (chỉ áp dụng khi status = `HoanThanh`).
+Hoàn tiền đơn hàng (chỉ áp dụng khi status = 2 (HoanThanh)).
 
 ---
 
@@ -340,12 +332,12 @@ Hoàn tiền đơn hàng (chỉ áp dụng khi status = `HoanThanh`).
       "sku": "WIN11-PRO",
       "categoryId": "uuid",
       "categoryName": "Windows",
-      "type": "WindowsKey",
+      "type": 1,
       "price": 500000,
       "comparePrice": 800000,
       "stock": 50,
       "sold": 120,
-      "status": "DangBan",
+      "status": 1,
       "image": "/uploads/...",
       "description": "Mô tả sản phẩm",
       "createdAt": "...",
@@ -372,11 +364,11 @@ Chi tiết sản phẩm.
   "name": "Windows 11 Pro",
   "sku": "WIN11-PRO",
   "categoryId": "uuid",
-  "type": "WindowsKey",
+  "type": 1,
   "price": 500000,
   "comparePrice": 800000,
   "stock": 50,
-  "status": "DangBan",
+  "status": 1,
   "image": "https://...",
   "description": "Mô tả"
 }
@@ -418,7 +410,7 @@ Cập nhật tồn kho.
       "icon": "🪟",
       "color": "#0078d4",
       "productCount": 15,
-      "status": "HienThi",
+      "status": 1,
       "createdAt": "...",
       "updatedAt": "..."
     }
@@ -437,7 +429,7 @@ Cập nhật tồn kho.
   "slug": "windows",
   "icon": "🪟",
   "color": "#0078d4",
-  "status": "HienThi"
+  "status": 1
 }
 ```
 
@@ -472,7 +464,7 @@ Bật/tắt hiển thị danh mục.
       "avatar": null,
       "totalOrders": 5,
       "totalSpending": 2500000,
-      "status": "HoatDong",
+      "status": 1,
       "joinedAt": "...",
       "updatedAt": "..."
     }
@@ -499,13 +491,13 @@ Chi tiết kèm lịch sử đơn hàng gần nhất (20 đơn).
     "email": "a@gmail.com",
     "totalOrders": 5,
     "totalSpending": 2500000,
-    "status": "HoatDong",
+    "status": 1,
     "orders": [
       {
         "id": "ORD-123456",
         "total": 500000,
-        "status": "HoanThanh",
-        "paymentMethod": "VNPay",
+        "status": 2,
+        "paymentMethod": 1,
         "createdAt": "..."
       }
     ]
@@ -521,7 +513,7 @@ Chi tiết kèm lịch sử đơn hàng gần nhất (20 đơn).
   "fullName": "Nguyễn Văn A",
   "email": "a@gmail.com",
   "phone": "0901234567",
-  "status": "HoatDong"
+  "status": 1
 }
 ```
 
@@ -558,7 +550,7 @@ Chi tiết kèm lịch sử đơn hàng gần nhất (20 đơn).
       "phone": "0281234567",
       "suppliedProducts": 10,
       "debt": 5000000,
-      "status": "DangHopTac",
+      "status": 1,
       "createdAt": "...",
       "updatedAt": "..."
     }
@@ -578,7 +570,7 @@ Chi tiết kèm lịch sử đơn hàng gần nhất (20 đơn).
   "contactPerson": "Trần B",
   "email": "abc@company.com",
   "phone": "0281234567",
-  "status": "ChoDuyet"
+  "status": 2
 }
 ```
 
@@ -617,7 +609,7 @@ Chi tiết kèm lịch sử đơn hàng gần nhất (20 đơn).
       "unit": "Key",
       "costPrice": 200000,
       "inventoryValue": 10000000,
-      "status": "ConHang",
+      "status": 1,
       "updatedAt": "..."
     }
   ],
@@ -625,7 +617,7 @@ Chi tiết kèm lịch sử đơn hàng gần nhất (20 đơn).
 }
 ```
 
-> `status` tự động: `quantity = 0` → `HetHang` · `< 20` → `SapHet` · `>= 20` → `ConHang`
+> `status` tự động: `quantity = 0` → `HetHang` (3) · `< 20` → `SapHet` (2) · `>= 20` → `ConHang` (1)
 
 ### GET /warehouse/summary
 
@@ -696,7 +688,7 @@ Chi tiết kèm lịch sử đơn hàng gần nhất (20 đơn).
       "orderId": null,
       "activatedAt": null,
       "expiresAt": null,
-      "status": "ChuaKichHoat",
+      "status": 5,
       "createdAt": "..."
     }
   ],
@@ -715,7 +707,7 @@ Tạo 1 key.
 {
   "key": "XXXXX-XXXXX-XXXXX-XXXXX-XXXXX",
   "productId": "uuid",
-  "status": "ChuaKichHoat",
+  "status": 5,
   "expiresAt": null
 }
 ```
@@ -730,7 +722,7 @@ Tạo hàng loạt key tự động.
   "productId": "uuid",
   "quantity": 100,
   "prefix": "WIN11",
-  "status": "ChuaKichHoat",
+  "status": 5,
   "expiresAt": null
 }
 ```
@@ -752,7 +744,7 @@ Gán key cho đơn hàng.
 
 **Request**
 ```json
-{ "status": "HoatDong", "expiresAt": "2025-12-31T00:00:00Z" }
+{ "status": 1, "expiresAt": "2025-12-31T00:00:00Z" }
 ```
 
 ### PATCH /keys/:id/lock
@@ -782,9 +774,9 @@ Gán key cho đơn hàng.
       "title": "Khuyến mãi tháng 6",
       "image": "/uploads/banners/abc.jpg",
       "link": "https://nexkey.vn/sale",
-      "position": "TrangChuHero",
+      "position": 1,
       "sortOrder": 1,
-      "status": "HienThi",
+      "status": 1,
       "createdAt": "...",
       "updatedAt": "..."
     }
@@ -802,9 +794,9 @@ Gán key cho đơn hàng.
   "title": "Khuyến mãi tháng 6",
   "image": "/uploads/banners/abc.jpg",
   "link": "https://nexkey.vn/sale",
-  "position": "TrangChuHero",
+  "position": 1,
   "sortOrder": 1,
-  "status": "HienThi"
+  "status": 1
 }
 ```
 
@@ -859,7 +851,7 @@ Upload ảnh banner. Gửi `multipart/form-data`, field `file`.
       "excerpt": "Mô tả ngắn...",
       "content": "<p>Nội dung HTML</p>",
       "category": "Hướng dẫn",
-      "status": "DaXuatBan",
+      "status": 1,
       "author": "Admin",
       "thumbnail": "/uploads/...",
       "tags": ["windows", "kích hoạt"],
@@ -890,7 +882,7 @@ Upload ảnh banner. Gửi `multipart/form-data`, field `file`.
   "excerpt": "Mô tả ngắn bài viết",
   "content": "<p>Nội dung HTML</p>",
   "category": "Hướng dẫn",
-  "status": "Nhap",
+  "status": 2,
   "author": "Admin",
   "thumbnail": "/uploads/...",
   "tags": ["windows", "kích hoạt"],
@@ -925,7 +917,7 @@ Trả về toàn bộ danh sách (không phân trang).
       "slug": "/chinh-sach-bao-mat",
       "description": "Meta description SEO",
       "content": "<p>Nội dung HTML</p>",
-      "status": "HienThi",
+      "status": 1,
       "isSystem": true,
       "wordCount": 350,
       "createdAt": "...",
@@ -950,7 +942,7 @@ Trả về toàn bộ danh sách (không phân trang).
   "slug": "/dieu-khoan-su-dung",
   "description": "Meta description",
   "content": "<p>Nội dung</p>",
-  "status": "HienThi"
+  "status": 1
 }
 ```
 
@@ -980,7 +972,7 @@ Trả về toàn bộ danh sách (không phân trang).
       "question": "Làm thế nào để kích hoạt key?",
       "answer": "Bạn vào Settings → ...",
       "category": "Key & Kích hoạt",
-      "status": "HienThi",
+      "status": 1,
       "sortOrder": 1,
       "createdAt": "...",
       "updatedAt": "..."
@@ -1000,7 +992,7 @@ Trả về toàn bộ danh sách (không phân trang).
   "question": "Làm thế nào để kích hoạt key?",
   "answer": "Bạn vào Settings → ...",
   "category": "Key & Kích hoạt",
-  "status": "HienThi",
+  "status": 1,
   "sortOrder": 1
 }
 ```
@@ -1038,7 +1030,7 @@ Bật/tắt hiển thị FAQ.
   "data": [
     {
       "id": "uuid",
-      "type": "Order",
+      "type": 1,
       "title": "Đơn hàng mới",
       "description": "Đơn hàng ORD-123456 được tạo",
       "adminId": "uuid",
@@ -1127,7 +1119,7 @@ Xóa log cũ.
       "email": "admin@nexkey.vn",
       "roleId": "uuid",
       "roleName": "Super Admin",
-      "status": "HoatDong",
+      "status": 1,
       "lastLogin": "2024-05-27T10:00:00Z",
       "createdAt": "..."
     }
@@ -1303,9 +1295,9 @@ Thống kê doanh thu theo phương thức thanh toán.
   "success": true,
   "data": {
     "byMethod": [
-      { "method": "VNPay", "count": 85, "revenue": 42500000 },
-      { "method": "Banking", "count": 30, "revenue": 15000000 },
-      { "method": "MoMo", "count": 5, "revenue": 2500000 }
+      { "method": 1, "count": 85, "revenue": 42500000 },
+      { "method": 3, "count": 30, "revenue": 15000000 },
+      { "method": 2, "count": 5, "revenue": 2500000 }
     ],
     "totalRevenue": 60000000,
     "totalOrders": 120
@@ -1349,11 +1341,11 @@ async function apiFetch(path: string, options: RequestInit = {}) {
 }
 
 // Ví dụ sử dụng
-const orders = await apiFetch('/orders?page=1&limit=10&status=HoanThanh')
+const orders = await apiFetch('/orders?page=1&limit=10&status=2')
 const order  = await apiFetch('/orders/ORD-123456')
 
 await apiFetch('/orders/ORD-123456', {
   method: 'PATCH',
-  body: JSON.stringify({ status: 'HoanThanh' })
+  body: JSON.stringify({ status: 2 })
 })
 ```

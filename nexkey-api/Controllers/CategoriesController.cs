@@ -1,10 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using NexKey.Api.Models.DTOs.Categories;
 using NexKey.Api.Interfaces;
 
 namespace NexKey.Api.Controllers;
 
-[Route("v1/categories")]
+[Route("api/categories")]
 public class CategoriesController : BaseController
 {
     private readonly ICategoryService _service;
@@ -30,7 +30,7 @@ public class CategoriesController : BaseController
     public async Task<IActionResult> Delete(string id)
     {
         await _service.DeleteAsync(id);
-        return Ok(new { message = "Đã xóa danh mục" });
+        return Ok(new { message = "ÄÃ£ xÃ³a danh má»¥c" });
     }
 
     [HttpPatch("{id}/toggle")]

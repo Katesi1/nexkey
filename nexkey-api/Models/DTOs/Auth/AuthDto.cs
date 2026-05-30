@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using NexKey.Api.Models.Enums;
 
 namespace NexKey.Api.Models.DTOs.Auth;
 
@@ -11,7 +12,6 @@ public class LoginRequest
 public class LoginResponse
 {
     public string Token { get; set; } = null!;
-    public AdminInfo Admin { get; set; } = null!;
 }
 
 public class AdminInfo
@@ -19,7 +19,7 @@ public class AdminInfo
     public string Id { get; set; } = null!;
     public string Name { get; set; } = null!;
     public string Email { get; set; } = null!;
-    public string Status { get; set; } = null!;
+    public AdminStatus Status { get; set; }
     public RoleInfo Role { get; set; } = null!;
 }
 
@@ -72,7 +72,7 @@ public class AdminDto
     public string Email { get; set; } = null!;
     public string RoleId { get; set; } = null!;
     public string RoleName { get; set; } = null!;
-    public string Status { get; set; } = null!;
+    public AdminStatus Status { get; set; }
     public DateTime? LastLogin { get; set; }
     public DateTime CreatedAt { get; set; }
 }

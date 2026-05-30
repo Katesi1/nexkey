@@ -14,7 +14,7 @@ public class LicenseKeyDto
     public string? OrderId { get; set; }
     public DateTime? ActivatedAt { get; set; }
     public DateTime? ExpiresAt { get; set; }
-    public string Status { get; set; } = null!;
+    public LicenseKeyStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
