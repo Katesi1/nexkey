@@ -48,7 +48,7 @@ export function VATBanner() {
             {/* CTA */}
             <div className="flex-shrink-0">
               <a
-                href="https://zalo.me/0325992001"
+                href="https://zalo.me/0917379181"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-emerald-50 active:scale-95 text-emerald-700 font-bold rounded-xl shadow-lg transition-all hover:-translate-y-0.5 text-sm whitespace-nowrap"

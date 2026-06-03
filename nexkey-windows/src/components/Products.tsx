@@ -64,7 +64,7 @@ function ProductCard({
             Trọn đời
           </div>
           <a
-            href="https://zalo.me/0325992001"
+            href="https://zalo.me/0917379181"
             target="_blank"
             rel="noopener noreferrer"
             className={`flex-1 flex justify-center items-center gap-2 py-2 ${buttonColor} ${hoverColor} text-white text-[13px] font-bold rounded-xl ${shadowColor} hover:shadow-lg hover:-translate-y-0.5 transition-all`}

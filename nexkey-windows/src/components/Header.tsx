@@ -75,7 +75,7 @@ export function Header() {
           </button>
 
           <a
-            href="https://zalo.me/0325992001"
+            href="https://zalo.me/0917379181"
             target="_blank"
             rel="noopener noreferrer"
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
@@ -119,7 +119,7 @@ export function Header() {
           ))}
           <div className="pt-3 flex gap-2">
             <a
-              href="https://zalo.me/0325992001"
+              href="https://zalo.me/0917379181"
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1 text-center py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
