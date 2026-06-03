@@ -6,12 +6,11 @@ import Image from "next/image";
 import { useTheme } from "@/providers/ThemeProvider";
 
 const NAV_LINKS = [
-  { label: "Trang chủ", href: "#home", active: true },
-  { label: "Windows 11", href: "#products" },
-  { label: "Windows 10", href: "#products" },
-  { label: "Hướng dẫn", href: "#guides" },
-  { label: "Câu hỏi thường gặp", href: "#faq" },
-  { label: "Liên hệ", href: "#contact" },
+  { label: "Trang chủ", href: "/" },
+  { label: "Sản phẩm", href: "/#products" },
+  { label: "Câu hỏi thường gặp", href: "/faq" },
+  { label: "Chính sách bảo hành", href: "/bao-hanh" },
+  { label: "Liên hệ", href: "/#contact" },
 ];
 
 export function Header() {
@@ -56,9 +55,7 @@ export function Header() {
               key={link.label}
               href={link.href}
               className={`px-3 py-2 text-sm font-medium transition-colors rounded-lg ${
-                link.active
-                  ? "text-blue-600 dark:text-blue-400 relative after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:bg-blue-500 after:rounded-full"
-                  : "text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/5"
+                "text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-white/5"
               }`}
             >
               {link.label}
@@ -78,7 +75,7 @@ export function Header() {
           </button>
 
           <a
-            href="https://zalo.me"
+            href="https://zalo.me/0325992001"
             target="_blank"
             rel="noopener noreferrer"
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
@@ -115,18 +112,14 @@ export function Header() {
               key={link.label}
               href={link.href}
               onClick={() => setMobileOpen(false)}
-              className={`block px-3 py-2.5 text-sm rounded-lg transition-colors ${
-                link.active
-                  ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
-                  : "text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-white/5"
-              }`}
+              className="block px-3 py-2.5 text-sm rounded-lg transition-colors text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-white/5"
             >
               {link.label}
             </a>
           ))}
           <div className="pt-3 flex gap-2">
             <a
-              href="https://zalo.me"
+              href="https://zalo.me/0325992001"
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1 text-center py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"

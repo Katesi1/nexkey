@@ -29,7 +29,7 @@ export function CTASection() {
 
           <div className="flex flex-wrap gap-4 flex-shrink-0">
             <a
-              href="https://zalo.me"
+              href="https://zalo.me/0325992001"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 px-7 py-4 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/30 hover:-translate-y-1 hover:shadow-xl transition-all duration-200 text-[15px]"
