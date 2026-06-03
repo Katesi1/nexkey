@@ -53,6 +53,16 @@ const FAQ_ITEMS = [
     answer:
       "Có. NexKey cam kết hỗ trợ kỹ thuật miễn phí trọn đời sau mua. Dù bạn gặp vấn đề kích hoạt, cài đặt lại Windows hay bất kỳ câu hỏi nào liên quan, đội ngũ kỹ thuật luôn sẵn sàng hỗ trợ qua Zalo và Facebook 24/7.",
   },
+  {
+    question: "NexKey có xuất hóa đơn VAT không?",
+    answer:
+      "Có. NexKey hỗ trợ xuất hóa đơn VAT (hóa đơn đỏ) đầy đủ theo yêu cầu cho cá nhân và doanh nghiệp. Để yêu cầu hóa đơn, bạn cung cấp thông tin gồm: tên công ty / cá nhân, mã số thuế, địa chỉ và email nhận hóa đơn. Hóa đơn được xuất và gửi qua email trong vòng 1–2 ngày làm việc sau khi hoàn tất giao dịch.",
+  },
+  {
+    question: "Hóa đơn VAT có giá trị pháp lý không?",
+    answer:
+      "Có. Hóa đơn do NexKey xuất là hóa đơn điện tử theo Nghị định 123/2020/NĐ-CP, có đầy đủ giá trị pháp lý để doanh nghiệp hạch toán chi phí, khấu trừ thuế GTGT và làm chứng từ kế toán. Nếu bạn cần hóa đơn ngay khi thanh toán, hãy thông báo trước khi đặt hàng để chúng tôi chuẩn bị.",
+  },
 ];
 
 export default function FAQPage() {

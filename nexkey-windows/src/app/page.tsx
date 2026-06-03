@@ -2,6 +2,7 @@ import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { FeatureBadges } from "@/components/FeatureBadges";
 import { Products } from "@/components/Products";
+import { VATBanner } from "@/components/VATBanner";
 import { WhyChooseUs } from "@/components/WhyChooseUs";
 import { SupportProcess } from "@/components/SupportProcess";
 import { Testimonials } from "@/components/Testimonials";
@@ -17,6 +18,7 @@ export default function HomePage() {
         <Hero />
         <FeatureBadges />
         <Products />
+        <VATBanner />
         <WhyChooseUs />
         <SupportProcess />
         <Testimonials />

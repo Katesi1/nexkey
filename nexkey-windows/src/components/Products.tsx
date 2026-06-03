@@ -127,6 +127,12 @@ export function Products() {
           <p className="text-slate-500 dark:text-slate-400 text-[15px]">
             Kích hoạt online – Sử dụng vĩnh viễn – Không gia hạn
           </p>
+          <div className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 rounded-full">
+            <svg className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-[13px] font-semibold text-green-700 dark:text-green-400">Hỗ trợ xuất hóa đơn VAT đầy đủ theo yêu cầu</span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

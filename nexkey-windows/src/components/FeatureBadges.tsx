@@ -6,6 +6,7 @@ const BADGES = [
   { icon: "/icons/headphones-support.svg",   title: "HỖ TRỢ 24/7",      desc: "Hỗ trợ tận tâm mọi lúc" },
   { icon: "/icons/star-warranty.svg",        title: "BẢO HÀNH DÀI HẠN", desc: "Yên tâm sử dụng" },
   { icon: "/icons/check-circle-lifetime.svg",title: "TRỌN ĐỜI",         desc: "Không giới hạn thời gian" },
+  { icon: "/icons/document.svg",             title: "HÓA ĐƠN VAT",      desc: "Xuất hóa đơn đầy đủ" },
 ];
 
 function BadgeItem({ icon, title, desc }: { icon: string; title: string; desc: string }) {

@@ -26,6 +26,11 @@ const REASONS = [
     title: "Bảo mật tuyệt đối",
     desc: "Thông tin khách hàng được bảo mật",
   },
+  {
+    icon: "/icons/document.svg",
+    title: "Xuất hóa đơn VAT",
+    desc: "Hỗ trợ hóa đơn đỏ đầy đủ theo yêu cầu",
+  },
 ];
 
 export function WhyChooseUs() {
@@ -38,7 +43,7 @@ export function WhyChooseUs() {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 lg:gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 lg:gap-8">
           {REASONS.map((r) => (
             <div key={r.title} className="flex flex-col items-center text-center gap-3 group">
               <div className="w-14 h-14 rounded-full border-2 border-blue-100 dark:border-blue-500/25 bg-blue-50/50 dark:bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
