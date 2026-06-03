@@ -1,5 +1,10 @@
 import Image from "next/image";
 import { CheckCircle2, MapPin } from "lucide-react";
+import {
+  WINDOWS_KEY_ORIGINAL_PRICE,
+  WINDOWS_KEY_SALE_PRICE,
+  formatVnd,
+} from "@/lib/pricing";
 
 const FEATURES = [
   "Key bản quyền chính hãng",
@@ -36,11 +41,26 @@ export function Hero() {
             </h1>
 
             {/* Sub */}
-            <p className="text-[13.5px] sm:text-[15px] text-slate-600 dark:text-slate-300 leading-relaxed mb-5 sm:mb-6">
+            <p className="text-[13.5px] sm:text-[15px] text-slate-600 dark:text-slate-300 leading-relaxed mb-4 sm:mb-5">
               Cung cấp key Windows chính hãng – Kích hoạt online 100%
               <br className="hidden sm:block" />
               Hỗ trợ cài đặt từ xa nhanh chóng – Bảo hành uy tín.
             </p>
+
+            <div className="inline-flex flex-wrap items-center gap-2 sm:gap-3 mb-5 sm:mb-6 px-4 py-3 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30">
+              <span className="px-2 py-0.5 rounded-md bg-red-500 text-white text-[10px] font-extrabold uppercase tracking-wide">
+                Giá sốc
+              </span>
+              <span className="text-2xl sm:text-[28px] font-extrabold text-red-600 dark:text-red-400 leading-none">
+                {formatVnd(WINDOWS_KEY_SALE_PRICE)}
+              </span>
+              <span className="text-sm text-slate-400 dark:text-slate-500 line-through">
+                {formatVnd(WINDOWS_KEY_ORIGINAL_PRICE)}
+              </span>
+              <span className="text-[12px] font-semibold text-slate-600 dark:text-slate-300">
+                / key trọn đời
+              </span>
+            </div>
 
             {/* Feature checklist */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-6 mb-6 sm:mb-7">

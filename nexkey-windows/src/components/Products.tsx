@@ -1,5 +1,11 @@
 import Image from "next/image";
 import { CheckCircle2 } from "lucide-react";
+import {
+  WINDOWS_KEY_ORIGINAL_PRICE,
+  WINDOWS_KEY_SALE_PRICE,
+  discountPercent,
+  formatVnd,
+} from "@/lib/pricing";
 
 interface ProductCardProps {
   version: "11" | "10";
@@ -11,6 +17,32 @@ interface ProductCardProps {
   shadowColor: string;
   borderColor: string;
   accent: string;
+}
+
+function ProductPrice({ accent }: { accent: string }) {
+  const percentOff = discountPercent(
+    WINDOWS_KEY_ORIGINAL_PRICE,
+    WINDOWS_KEY_SALE_PRICE,
+  );
+
+  return (
+    <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
+      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-red-500 text-white text-[10px] font-extrabold tracking-wide uppercase">
+        Giá sốc
+      </span>
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span className={`text-[22px] sm:text-[24px] font-extrabold leading-none ${accent}`}>
+          {formatVnd(WINDOWS_KEY_SALE_PRICE)}
+        </span>
+        <span className="text-[13px] text-slate-400 dark:text-slate-500 line-through">
+          {formatVnd(WINDOWS_KEY_ORIGINAL_PRICE)}
+        </span>
+        <span className="text-[11px] font-bold text-red-500 dark:text-red-400">
+          -{percentOff}%
+        </span>
+      </div>
+    </div>
+  );
 }
 
 function ProductCard({
@@ -43,9 +75,12 @@ function ProductCard({
 
           {/* Title + features */}
           <div className="flex-1 min-w-0 space-y-3">
-            <div>
-              <h3 className={`text-[17px] font-bold ${accent} mb-0.5`}>{name}</h3>
-              <p className="text-[12px] text-slate-600 dark:text-slate-400 font-medium">{subtitle}</p>
+            <div className="space-y-2">
+              <div>
+                <h3 className={`text-[17px] font-bold ${accent} mb-0.5`}>{name}</h3>
+                <p className="text-[12px] text-slate-600 dark:text-slate-400 font-medium">{subtitle}</p>
+              </div>
+              <ProductPrice accent={accent} />
             </div>
             <ul className="space-y-1.5">
               {features.map((f) => (
@@ -125,7 +160,10 @@ export function Products() {
             Key Windows bản quyền trọn đời
           </h2>
           <p className="text-slate-500 dark:text-slate-400 text-[15px]">
-            Kích hoạt online – Sử dụng vĩnh viễn – Không gia hạn
+            Kích hoạt online – Sử dụng vĩnh viễn – Chỉ từ{" "}
+            <span className="font-bold text-red-500 dark:text-red-400">
+              {formatVnd(WINDOWS_KEY_SALE_PRICE)}
+            </span>
           </p>
           <div className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 rounded-full">
             <svg className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
