@@ -220,7 +220,7 @@ export default function BaoHanhPage() {
                 Liên hệ trực tiếp với NexKey ngay hôm nay
               </h2>
               <a
-                href="https://zalo.me/0917379181"
+                href="https://zalo.me/0325992001"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2.5 bg-white text-blue-700 font-bold px-7 py-3 rounded-xl hover:bg-blue-50 transition-colors shadow-md text-sm sm:text-base"

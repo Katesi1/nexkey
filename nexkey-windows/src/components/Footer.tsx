@@ -32,7 +32,7 @@ export function Footer() {
                 </svg>
               </a>
               <a
-                href="#"
+                href="https://zalo.me/0325992001"
                 className="w-8 h-8 rounded-lg bg-sky-500 hover:bg-sky-600 flex items-center justify-center transition-colors"
                 aria-label="Zalo"
               >
@@ -75,7 +75,7 @@ export function Footer() {
             <ul className="space-y-3">
               <li className="flex items-start gap-2">
                 <Phone size={12} className="text-blue-400 mt-0.5 flex-shrink-0" />
-                <span className="text-[12px] text-slate-400">Zalo: 0917 379 181</span>
+                <span className="text-[12px] text-slate-400">Zalo: 0325 992 001</span>
               </li>
               <li className="flex items-start gap-2">
                 <MessageCircle size={12} className="text-blue-400 mt-0.5 flex-shrink-0" />

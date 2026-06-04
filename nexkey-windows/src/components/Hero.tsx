@@ -75,7 +75,7 @@ export function Hero() {
             {/* CTA buttons */}
             <div className="flex flex-wrap gap-2 sm:gap-3 mb-4 sm:mb-5">
               <a
-                href="https://zalo.me/0917379181"
+                href="https://zalo.me/0325992001"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-5 sm:px-7 py-3 sm:py-3.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:-translate-y-0.5 transition-all text-sm"

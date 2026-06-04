@@ -7,7 +7,7 @@ export function FloatingButtons() {
     <div className="fixed right-4 bottom-20 z-40 flex flex-col items-end gap-3">
       {/* Zalo */}
       <a
-        href="https://zalo.me/0917379181"
+        href="https://zalo.me/0325992001"
         target="_blank"
         rel="noopener noreferrer"
         className="group relative flex items-center gap-2"
