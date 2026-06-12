@@ -1,0 +1,53 @@
+<svg width="340" height="448" viewBox="0 0 340 448" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Microsoft Office Professional">
+  <defs>
+    <linearGradient id="boxFace" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f1f3f6"/>
+    </linearGradient>
+    <linearGradient id="boxHeader" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e8470a"/>
+      <stop offset="1" stop-color="#c2370a"/>
+    </linearGradient>
+    <linearGradient id="boxSpine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a82f08"/>
+      <stop offset="1" stop-color="#d83b01"/>
+    </linearGradient>
+    <filter id="boxShadow" x="-20%" y="-10%" width="140%" height="125%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#1f2937" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <!-- Box body -->
+  <g filter="url(#boxShadow)">
+    <!-- Left spine (3D) -->
+    <path d="M44 40 L60 30 L60 416 L44 426 Z" fill="url(#boxSpine)"/>
+    <!-- Front face -->
+    <rect x="60" y="30" width="236" height="386" rx="6" fill="url(#boxFace)"/>
+    <!-- Header band -->
+    <path d="M60 36 a6 6 0 0 1 6-6 h224 a6 6 0 0 1 6 6 v92 h-236 Z" fill="url(#boxHeader)"/>
+  </g>
+
+  <!-- Header text -->
+  <text x="178" y="74" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="700" fill="#ffffff" letter-spacing="0.5">Office</text>
+  <text x="178" y="104" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" fill="#ffe2d6" letter-spacing="3">PROFESSIONAL</text>
+
+  <!-- App tiles 2x2 -->
+  <g font-family="Segoe UI, Arial, sans-serif" font-weight="700" fill="#ffffff" text-anchor="middle">
+    <!-- Word -->
+    <rect x="92" y="164" width="80" height="80" rx="10" fill="#2b579a"/>
+    <text x="132" y="214" font-size="40">W</text>
+    <!-- Excel -->
+    <rect x="184" y="164" width="80" height="80" rx="10" fill="#217346"/>
+    <text x="224" y="214" font-size="40">X</text>
+    <!-- PowerPoint -->
+    <rect x="92" y="256" width="80" height="80" rx="10" fill="#d24726"/>
+    <text x="132" y="306" font-size="40">P</text>
+    <!-- Outlook -->
+    <rect x="184" y="256" width="80" height="80" rx="10" fill="#0f6cbd"/>
+    <text x="224" y="306" font-size="40">O</text>
+  </g>
+
+  <!-- Footer -->
+  <text x="178" y="372" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600" fill="#475569">Word · Excel · PowerPoint · Outlook</text>
+  <text x="178" y="396" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700" fill="#d83b01" letter-spacing="1">GÓI BẢN QUYỀN 1 NĂM</text>
+</svg>
